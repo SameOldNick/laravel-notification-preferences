@@ -3,6 +3,7 @@
 namespace SameOldNick\NotificationPreferences\Concerns;
 
 use Illuminate\Notifications\AnonymousNotifiable;
+use SameOldNick\NotificationPreferences\Contracts\NotificationChannelProvider;
 use SameOldNick\NotificationPreferences\Services\NotificationChannelResolver;
 
 trait RoutesViaNotifiablePreferences
@@ -11,6 +12,7 @@ trait RoutesViaNotifiablePreferences
      * Get the specific notification type for this notification.
      *
      * This is used to look up the user's preferences for this notification.
+     * This should correspond to a key in the notification types configuration.
      */
     abstract public function notificationType(): string;
 
@@ -38,7 +40,7 @@ trait RoutesViaNotifiablePreferences
      */
     protected function getAvailableChannels(mixed $notifiable): array
     {
-        return config('notifications.available_channels', []);
+        return app(NotificationChannelProvider::class)->availableNotificationChannels();
     }
 
     /**
@@ -48,6 +50,6 @@ trait RoutesViaNotifiablePreferences
      */
     public function getDefaultChannels(mixed $notifiable): array
     {
-        return ! $notifiable instanceof AnonymousNotifiable ? config('notifications.default_channels', []) : [];
+        return ! $notifiable instanceof AnonymousNotifiable ? app(NotificationChannelProvider::class)->defaultNotificationChannels() : [];
     }
 }

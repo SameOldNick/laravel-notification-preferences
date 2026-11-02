@@ -3,6 +3,8 @@
 namespace SameOldNick\NotificationPreferences;
 
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use SameOldNick\NotificationPreferences\Contracts\NotificationChannelProvider;
+use SameOldNick\NotificationPreferences\Contracts\NotificationTypeProvider;
 
 class ServiceProvider extends BaseServiceProvider
 {
@@ -13,6 +15,10 @@ class ServiceProvider extends BaseServiceProvider
      */
     public function register()
     {
+        $this->app->singleton(NotificationChannelProvider::class, Providers\NotificationChannelConfigProvider::class);
+
+        $this->app->singleton(NotificationTypeProvider::class, Providers\NotificationTypeConfigProvider::class);
+
         $this->publishesMigrations([
             __DIR__.'/../database/migrations' => database_path('migrations'),
         ], 'notification-preferences-migrations');
