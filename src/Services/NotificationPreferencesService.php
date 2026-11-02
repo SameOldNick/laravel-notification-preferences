@@ -2,6 +2,7 @@
 
 namespace SameOldNick\NotificationPreferences\Services;
 
+use InvalidArgumentException;
 use SameOldNick\NotificationPreferences\Contracts\NotificationChannelProvider;
 use SameOldNick\NotificationPreferences\Contracts\NotificationTypeProvider;
 
@@ -24,7 +25,9 @@ class NotificationPreferencesService
      */
     public function getPreferencesForNotifiable(object $notifiable): array
     {
-        $notificationTypes = [];
+        if (! $this->isNotifableSupported($notifiable)) {
+            throw new InvalidArgumentException('The provided notifiable does not support notification preferences.');
+        }
 
         $notificationPreferences = $notifiable->notificationPreferences->mapWithKeys(fn ($preference) => [
             enum_value($preference->channel).':'.enum_value($preference->notification_type) => $preference->enabled,
@@ -32,6 +35,8 @@ class NotificationPreferencesService
 
         // Define channels that can be modified by the user
         $channels = $this->notificationChannelProvider->availableNotificationChannels();
+
+        $notificationTypes = [];
 
         foreach ($this->notificationTypeProvider->notificationTypes() as $type => $notificationType) {
             foreach ($channels as $channel) {
@@ -58,6 +63,10 @@ class NotificationPreferencesService
      */
     public function updatePreferencesForNotifiable(object $notifiable, array $preferences): void
     {
+        if (! $this->isNotifableSupported($notifiable)) {
+            throw new InvalidArgumentException('The provided notifiable does not support notification preferences.');
+        }
+
         foreach ($preferences as $key => $type) {
             foreach ($type['channels'] as $channel => $enabled) {
                 $existing = $notifiable->notificationPreferences()
@@ -82,5 +91,16 @@ class NotificationPreferencesService
                 }
             }
         }
+    }
+
+    /**
+     * Check if the notifiable entity supports notification preferences.
+     *
+     * @param  object  $notifiable  The notifiable entity to check.
+     * @return bool True if the notifiable supports notification preferences, false otherwise.
+     */
+    protected function isNotifableSupported(object $notifiable): bool
+    {
+        return method_exists($notifiable, 'notificationPreferences');
     }
 }
