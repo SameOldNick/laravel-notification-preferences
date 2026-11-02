@@ -49,4 +49,38 @@ class NotificationPreferencesService
 
         return $notificationTypes;
     }
+
+    /**
+     * Update the notification preferences for a given notifiable.
+     *
+     * @param  object  $notifiable  The notifiable entity (e.g., User model).
+     * @param  array<string, array{channels: array<string, bool>}>  $preferences  An associative array of notification preferences to update.
+     */
+    public function updatePreferencesForNotifiable(object $notifiable, array $preferences): void
+    {
+        foreach ($preferences as $key => $type) {
+            foreach ($type['channels'] as $channel => $enabled) {
+                $existing = $notifiable->notificationPreferences()
+                    ->where('notification_type', $key)
+                    ->where('channel', $channel)
+                    ->first();
+
+                if ($existing) {
+                    if ($existing->enabled === $enabled) {
+                        // No change needed, skip to next
+                        continue;
+                    }
+
+                    // Update existing preference
+                    $existing->update(['enabled' => $enabled]);
+                } else {
+                    $notifiable->notificationPreferences()->create([
+                        'notification_type' => $key,
+                        'channel' => $channel,
+                        'enabled' => $enabled,
+                    ]);
+                }
+            }
+        }
+    }
 }
