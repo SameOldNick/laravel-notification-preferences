@@ -1,5 +1,7 @@
 <?php
 
+use SameOldNick\NotificationPreferences\Tests\Fixtures\TestNotification;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -68,59 +70,9 @@ return [
             'category' => 'Security',
         ],
 
-        'password_change' => [
-            'label' => 'Password Change',
-            'category' => 'Security',
-        ],
-
-        'password_reset' => [
-            'label' => 'Password Reset',
-            'category' => 'Security',
-        ],
-
-        'password_changed' => [
-            'label' => 'Password Changed',
-            'category' => 'Security',
-        ],
-
-        '2fa_enabled' => [
-            'label' => 'Two-Factor Authentication Enabled',
-            'category' => 'Security',
-        ],
-
-        '2fa_disabled' => [
-            'label' => 'Two-Factor Authentication Disabled',
-            'category' => 'Security',
-        ],
-
-        'recovery_code_used' => [
-            'label' => 'Recovery Code Used',
-            'category' => 'Security',
-        ],
-
-        'recovery_code_generated' => [
-            'label' => 'Recovery Code Generated',
-            'category' => 'Security',
-        ],
-
-        'passkey_registered' => [
-            'label' => 'Passkey Registered',
-            'category' => 'Security',
-        ],
-
-        'passkey_deleted' => [
-            'label' => 'Passkey Deleted',
-            'category' => 'Security',
-        ],
-
-        'email_changed' => [
-            'label' => 'Email Changed',
-            'category' => 'Security',
-        ],
-
-        'account_deleted' => [
-            'label' => 'Account Deleted',
-            'category' => 'Security',
+        TestNotification::class => [
+            'label' => 'Test Notification',
+            'category' => 'Testing',
         ],
     ],
 ];

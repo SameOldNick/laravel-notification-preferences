@@ -149,7 +149,7 @@ class NotificationChannelResolverTest extends TestCase
 
         $this->assertSame(
             ['mail', 'ntfy', 'app'],
-            $this->resolver()->viaNotifiablePreferencesWithDefaults($notifiable, 'login', ['mail', 'ntfy'], ['app']),
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail', 'ntfy'], ['app']),
         );
     }
 
@@ -159,7 +159,7 @@ class NotificationChannelResolverTest extends TestCase
 
         $this->assertSame(
             ['mail', 'ntfy'],
-            $this->resolver()->viaNotifiablePreferencesWithDefaults($notifiable, 'login', ['mail', 'ntfy'], ['mail']),
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail', 'ntfy'], ['mail']),
         );
     }
 
@@ -170,7 +170,7 @@ class NotificationChannelResolverTest extends TestCase
 
         $this->assertSame(
             ['mail', 'app'],
-            $this->resolver()->viaNotifiablePreferencesWithDefaults($notifiable, 'login', ['mail', 'app'], ['app']),
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail', 'app'], ['app']),
         );
     }
 
@@ -180,7 +180,7 @@ class NotificationChannelResolverTest extends TestCase
 
         $this->assertSame(
             ['app'],
-            $this->resolver()->viaNotifiablePreferencesWithDefaults($notifiable, 'login', [], ['app']),
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', [], ['app']),
         );
     }
 
@@ -188,7 +188,7 @@ class NotificationChannelResolverTest extends TestCase
     {
         $this->assertSame(
             ['mail', 'app'],
-            $this->resolver()->viaNotifiablePreferencesWithDefaults(new stdClass, 'login', ['mail'], ['app']),
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels(new stdClass, 'login', ['mail'], ['app']),
         );
     }
 
@@ -198,7 +198,7 @@ class NotificationChannelResolverTest extends TestCase
 
         $this->assertSame(
             ['mail', 'app'],
-            $this->resolver()->viaNotifiablePreferencesWithDefaults($notifiable, 'login', ['mail'], ['app', 'app']),
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail'], ['app', 'app']),
         );
     }
 

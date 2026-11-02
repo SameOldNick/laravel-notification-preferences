@@ -45,15 +45,17 @@ class NotificationChannelResolver
     /**
      * Similar to viaNotifiablePreferences but appends channels that are included regardless of preferences.
      *
-     * @param  array<int, string>  $availableChannels
-     * @param  array<int, string>  $defaultChannels
+     * @param  string  $notificationType  The notification type to check preferences for
+     * @param  object  $notifiable  The notifiable entity to check preferences for
+     * @param  array<int, string>  $availableChannels  Available channels that the notification can be sent to
+     * @param  array<int, string>  $requiredChannels  Channels that should always be included, even if the notifiable has disabled them.
      * @return array<int, string>
      */
-    public function viaNotifiablePreferencesWithDefaults(object $notifiable, string $type, array $availableChannels = [], array $defaultChannels = []): array
+    public function viaNotifiablePreferencesWithRequiredChannels(object $notifiable, string $notificationType, array $availableChannels = [], array $requiredChannels = []): array
     {
         return array_values(array_unique([
-            ...$this->viaNotifiablePreferences($notifiable, $type, $availableChannels),
-            ...$this->normaliseChannels($defaultChannels),
+            ...$this->viaNotifiablePreferences($notifiable, $notificationType, $availableChannels),
+            ...$this->normaliseChannels($requiredChannels),
         ]));
     }
 

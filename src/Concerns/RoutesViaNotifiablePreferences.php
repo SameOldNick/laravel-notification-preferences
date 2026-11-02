@@ -31,11 +31,11 @@ trait RoutesViaNotifiablePreferences
             return [];
         }
 
-        return app(NotificationChannelResolver::class)->viaNotifiablePreferencesWithDefaults(
+        return app(NotificationChannelResolver::class)->viaNotifiablePreferencesWithRequiredChannels(
             $notifiable,
             $this->notificationType(),
             $this->getAvailableChannels($notifiable),
-            $this->getDefaultChannels($notifiable),
+            $this->getRequiredChannels($notifiable),
         );
     }
 
@@ -48,12 +48,12 @@ trait RoutesViaNotifiablePreferences
     }
 
     /**
-     * Get the default channels for a given notification type, which can be overridden by the notification class.
+     * Get the required channels for a given notification type which must always be sent, regardless of user preferences.
      *
      * @return array<int, string>
      */
-    public function getDefaultChannels(mixed $notifiable): array
+    public function getRequiredChannels(mixed $notifiable): array
     {
-        return ! $notifiable instanceof AnonymousNotifiable ? app(NotificationChannelProvider::class)->defaultNotificationChannels() : [];
+        return ! $notifiable instanceof AnonymousNotifiable ? app(NotificationChannelProvider::class)->requiredNotificationChannels() : [];
     }
 }

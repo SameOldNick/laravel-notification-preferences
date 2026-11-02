@@ -25,8 +25,8 @@ class NotificationChannelConfigProvider implements NotificationChannelProvider
     /**
      * {@inheritDoc}
      */
-    public function defaultNotificationChannels(): array
+    public function requiredNotificationChannels(): array
     {
-        return config('notifications.default_channels', []);
+        return config('notifications.required_channels', []);
     }
 }

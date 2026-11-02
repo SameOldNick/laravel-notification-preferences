@@ -22,9 +22,9 @@ interface NotificationChannelProvider
     public function availableNotificationChannels(): array;
 
     /**
-     * Get the notification channels that are default for new users.
+     * Get the notification channels that are required for all notifications, regardless of user preferences.
      *
      * @return list<string> The list of default notification channel keys.
      */
-    public function defaultNotificationChannels(): array;
+    public function requiredNotificationChannels(): array;
 }
