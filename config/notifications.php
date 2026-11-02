@@ -51,7 +51,18 @@ return [
         'app',
     ],
 
-    'notifications' => [
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Types
+    |--------------------------------------------------------------------------
+    |
+    | This array defines the different types of notifications that can be sent
+    | to users. Each notification type has a label and a category. You can add
+    | or remove notification types as needed. The notification types will be used
+    | to look up user preferences and determine which channels to send notifications through.
+    |
+    */
+    'types' => [
         'login' => [
             'label' => 'Login',
             'category' => 'Security',
