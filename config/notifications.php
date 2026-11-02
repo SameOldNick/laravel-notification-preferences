@@ -21,9 +21,6 @@ return [
     | in the application. You can add or remove channels as needed. The available
     | channels will be used to send notifications to users based on their preferences.
     |
-    | Note: The channels defined here should correspond to the channels specified
-    | in the SameOldNick\NotificationPreferences\Enums\NotificationChannel enum.
-    |
     */
     'available_channels' => [
         'mail',
@@ -39,9 +36,6 @@ return [
     | when sending notifications. These channels will be used if the user has not
     | specified their own preferences. You can modify this array to change the
     | default channels for notifications.
-    |
-    | Note: The channels defined here should correspond to the channels specified
-    | in the SameOldNick\NotificationPreferences\Enums\NotificationChannel enum.
     |
     */
     'default_channels' => [
