@@ -1,96 +1,96 @@
 {
-  "$schema": "https://getcomposer.org/schema.json",
-  "name": "sameoldnick/laravel-notification-preferences",
-  "description": "A Laravel package for managing user notification preferences by notification type and delivery channel.",
-  "keywords": [
-    "SameOldNick",
-    "laravel",
-    "laravel-notification-preferences",
-    "notification",
-    "preferences"
-  ],
-  "homepage": "https://github.com/sameoldnick/laravel-notification-preferences",
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Nick Hamnett",
-      "email": "nick@sameoldnick.com",
-      "role": "Developer"
-    }
-  ],
-  "require": {
-    "php": "^8.4",
-    "illuminate/contracts": "^11.0||^12.0||^13.0"
-  },
-  "require-dev": {
-    "larastan/larastan": "^3.0",
-    "laravel/fortify": "^1.37",
-    "laravel/pint": "^1.30",
-    "nunomaduro/collision": "^8.8",
-    "orchestra/testbench": "^11.0.0||^10.0.0||^9.0.0",
-    "pestphp/pest": "^4.0",
-    "pestphp/pest-plugin-arch": "^4.0",
-    "pestphp/pest-plugin-laravel": "^4.0",
-    "phpstan/extension-installer": "^1.4",
-    "phpstan/phpstan-deprecation-rules": "^2.0",
-    "phpstan/phpstan-phpunit": "^2.0",
-    "spatie/laravel-ray": "^1.35"
-  },
-  "autoload": {
-    "psr-4": {
-      "SameOldNick\\NotificationPreferences\\": "src/",
-      "SameOldNick\\NotificationPreferences\\Database\\Factories\\": "database/factories/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "SameOldNick\\NotificationPreferences\\Tests\\": "tests/",
-      "Workbench\\App\\": "workbench/app/",
-      "Workbench\\Database\\Factories\\": "workbench/database/factories/",
-      "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
-    }
-  },
-  "scripts": {
-    "post-autoload-dump": [
-      "@clear",
-      "@prepare",
-      "@composer run prepare"
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "sameoldnick/laravel-notification-preferences",
+    "description": "A Laravel package for managing user notification preferences by notification type and delivery channel.",
+    "keywords": [
+        "SameOldNick",
+        "laravel",
+        "laravel-notification-preferences",
+        "notification",
+        "preferences"
     ],
-    "prepare": "@php vendor/bin/testbench package:discover --ansi",
-    "analyse": "vendor/bin/phpstan analyse",
-    "test": "vendor/bin/pest",
-    "test-coverage": "vendor/bin/pest --coverage",
-    "format": "vendor/bin/pint",
-    "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
-    "build": "@php vendor/bin/testbench workbench:build --ansi",
-    "artisan": "@php vendor/bin/testbench --ansi",
-    "serve": [
-      "Composer\\Config::disableProcessTimeout",
-      "@build",
-      "@php vendor/bin/testbench serve --ansi"
+    "homepage": "https://github.com/sameoldnick/laravel-notification-preferences",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Nick Hamnett",
+            "email": "nick@sameoldnick.com",
+            "role": "Developer"
+        }
     ],
-    "lint": [
-      "@php vendor/bin/pint --ansi",
-      "@php vendor/bin/phpstan analyse --verbose --ansi"
-    ]
-  },
-  "config": {
-    "sort-packages": true,
-    "allow-plugins": {
-      "pestphp/pest-plugin": true,
-      "phpstan/extension-installer": true
-    }
-  },
-  "extra": {
-    "laravel": {
-      "providers": [
-        "SameOldNick\\NotificationPreferences\\ServiceProvider"
-      ],
-      "aliases": {
-        "NotificationPreferences": "SameOldNick\\NotificationPreferences\\Facades\\NotificationPreferences"
-      }
-    }
-  },
-  "minimum-stability": "dev",
-  "prefer-stable": true
+    "require": {
+        "php": "^8.4",
+        "illuminate/contracts": "^11.0||^12.0||^13.0"
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.0",
+        "laravel/fortify": "^1.37",
+        "laravel/pint": "^1.30",
+        "nunomaduro/collision": "^8.8",
+        "orchestra/testbench": "^11.0.0||^10.0.0||^9.0.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-arch": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "spatie/laravel-ray": "^1.35"
+    },
+    "autoload": {
+        "psr-4": {
+            "SameOldNick\\NotificationPreferences\\": "src/",
+            "SameOldNick\\NotificationPreferences\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SameOldNick\\NotificationPreferences\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@clear",
+            "@prepare",
+            "@composer run prepare"
+        ],
+        "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "analyse": "vendor/bin/phpstan analyse",
+        "test": "vendor/bin/pest",
+        "test-coverage": "vendor/bin/pest --coverage",
+        "format": "vendor/bin/pint",
+        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
+        "build": "@php vendor/bin/testbench workbench:build --ansi",
+        "artisan": "@php vendor/bin/testbench --ansi",
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "@build",
+            "@php vendor/bin/testbench serve --ansi"
+        ],
+        "lint": [
+            "@php vendor/bin/pint --ansi",
+            "@php vendor/bin/phpstan analyse --verbose --ansi"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SameOldNick\\NotificationPreferences\\ServiceProvider"
+            ],
+            "aliases": {
+                "NotificationPreferences": "SameOldNick\\NotificationPreferences\\Facades\\NotificationPreferences"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
