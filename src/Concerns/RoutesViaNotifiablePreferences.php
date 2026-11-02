@@ -13,8 +13,12 @@ trait RoutesViaNotifiablePreferences
      *
      * This is used to look up the user's preferences for this notification.
      * This should correspond to a key in the notification types configuration.
+     * By default, this will return the class name of the notification, but can be overridden in the notification class if needed.
      */
-    abstract public function notificationType(): string;
+    public function notificationType(): string
+    {
+        return get_class($this);
+    }
 
     /**
      * Get the notification's delivery channels.
