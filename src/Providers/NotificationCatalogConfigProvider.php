@@ -4,7 +4,7 @@ namespace SameOldNick\NotificationPreferences\Providers;
 
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 
-class NotificationConfigProvider implements NotificationCatalog
+class NotificationCatalogConfigProvider implements NotificationCatalog
 {
     /**
      * {@inheritDoc}

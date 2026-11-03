@@ -14,7 +14,7 @@ class ServiceProvider extends BaseServiceProvider
      */
     public function register()
     {
-        $this->app->singleton(NotificationCatalog::class, Providers\NotificationConfigProvider::class);
+        $this->app->singleton(NotificationCatalog::class, Providers\NotificationCatalogConfigProvider::class);
 
         $this->publishesMigrations([
             __DIR__.'/../database/migrations' => database_path('migrations'),
