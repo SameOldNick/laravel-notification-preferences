@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use SameOldNick\NotificationPreferences\Concerns\HasNotificationPreferences;
-use Workbench\Workbench\Workbench\Database\Factories\UserFactory;
+use Workbench\Database\Factories\UserFactory;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
