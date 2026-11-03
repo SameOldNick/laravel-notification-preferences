@@ -2,6 +2,7 @@
 
 namespace SameOldNick\NotificationPreferences\Tests\Feature;
 
+use SameOldNick\NotificationPreferences\Contracts\NotificationChannelProvider;
 use SameOldNick\NotificationPreferences\Models\NotifiableNotificationPreference;
 use SameOldNick\NotificationPreferences\Tests\TestCase;
 use Workbench\App\Models\User;
@@ -356,6 +357,46 @@ class NotificationPreferencesUpdateTest extends TestCase
             ->assertJsonValidationErrors(['types.login.channels']);
     }
 
+    public function test_update_rejects_a_channel_that_is_not_available_for_the_submitted_type(): void
+    {
+        $this->bindAvailableChannelsForTypes([
+            'login' => ['mail'],
+            'password_change' => ['mail', 'ntfy'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->actingAs($notifiable)
+            ->postJson(route('notification-preferences.update'), $this->payload([
+                'login' => ['ntfy' => false],
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['types.login.channels']);
+
+        $this->assertDatabaseCount('notifiable_notification_preferences', 0);
+    }
+
+    public function test_update_accepts_channels_that_are_available_for_each_submitted_type(): void
+    {
+        $this->bindAvailableChannelsForTypes([
+            'login' => ['mail'],
+            'password_change' => ['mail', 'ntfy'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->actingAs($notifiable)
+            ->postJson(route('notification-preferences.update'), $this->payload([
+                'login' => ['mail' => false],
+                'password_change' => ['mail' => true, 'ntfy' => false],
+            ]))
+            ->assertOk();
+
+        $this->assertFalse($this->preferenceFor($notifiable, 'login', 'mail')?->enabled);
+        $this->assertTrue($this->preferenceFor($notifiable, 'password_change', 'mail')?->enabled);
+        $this->assertFalse($this->preferenceFor($notifiable, 'password_change', 'ntfy')?->enabled);
+    }
+
     public function test_update_rejects_any_channel_when_no_channels_are_available(): void
     {
         // Desired: with nothing available, no channel should be accepted. Currently the
@@ -489,6 +530,48 @@ class NotificationPreferencesUpdateTest extends TestCase
             ->assertUnprocessable();
 
         $this->assertDatabaseCount('notifiable_notification_preferences', 0);
+    }
+
+    /**
+     * @param  array<string, list<string>>  $availableChannelsByType
+     */
+    private function bindAvailableChannelsForTypes(array $availableChannelsByType): void
+    {
+        $this->app->instance(NotificationChannelProvider::class, new class($availableChannelsByType) implements NotificationChannelProvider
+        {
+            /**
+             * @param  array<string, list<string>>  $availableChannelsByType
+             */
+            public function __construct(private readonly array $availableChannelsByType)
+            {
+                //
+            }
+
+            public function notificationChannels(): array
+            {
+                return [];
+            }
+
+            public function availableNotificationChannels(): array
+            {
+                return [];
+            }
+
+            public function requiredNotificationChannels(): array
+            {
+                return [];
+            }
+
+            public function availableNotificationChannelsFor(string $notificationType, object $notifiable): array
+            {
+                return $this->availableChannelsByType[$notificationType] ?? [];
+            }
+
+            public function requiredNotificationChannelsFor(string $notificationType, object $notifiable): array
+            {
+                return [];
+            }
+        });
     }
 
     /**

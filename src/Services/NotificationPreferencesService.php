@@ -20,6 +20,9 @@ class NotificationPreferencesService
     /**
      * Get the notification preferences for a given notifiable.
      *
+     * The channel provider is consulted once per configured notification type, since
+     * each type may be deliverable through a different set of channels.
+     *
      * @param  object  $notifiable  The notifiable entity (e.g., User model).
      * @return array An associative array of notification preferences.
      */
@@ -33,12 +36,12 @@ class NotificationPreferencesService
             enum_value($preference->channel).':'.enum_value($preference->notification_type) => $preference->enabled,
         ]);
 
-        // Define channels that can be modified by the user
-        $channels = $this->notificationChannelProvider->availableNotificationChannels();
-
         $notificationTypes = [];
 
         foreach ($this->notificationTypeProvider->notificationTypes() as $type => $notificationType) {
+            // Resolved per type, so a type can offer a different channel set than its siblings.
+            $channels = $this->notificationChannelProvider->availableNotificationChannelsFor($type, $notifiable);
+
             foreach ($channels as $channel) {
                 $key = $channel.':'.$type;
 

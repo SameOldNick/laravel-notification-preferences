@@ -44,7 +44,7 @@ trait RoutesViaNotifiablePreferences
      */
     protected function getAvailableChannels(mixed $notifiable): array
     {
-        return app(NotificationChannelProvider::class)->availableNotificationChannels();
+        return app(NotificationChannelProvider::class)->availableNotificationChannelsFor($this->notificationType(), $notifiable);
     }
 
     /**
@@ -54,6 +54,8 @@ trait RoutesViaNotifiablePreferences
      */
     public function getRequiredChannels(mixed $notifiable): array
     {
-        return ! $notifiable instanceof AnonymousNotifiable ? app(NotificationChannelProvider::class)->requiredNotificationChannels() : [];
+        return ! $notifiable instanceof AnonymousNotifiable ?
+            app(NotificationChannelProvider::class)->requiredNotificationChannelsFor($this->notificationType(), $notifiable) :
+            [];
     }
 }
