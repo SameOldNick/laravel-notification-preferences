@@ -202,6 +202,30 @@ $service->updatePreferencesForNotifiable($user, [
 
 Validate the incoming types and channels against `SameOldNick\NotificationPreferences\Contracts\NotificationCatalog` before calling `updatePreferencesForNotifiable()`, since the service stores whatever it is given.
 
+### Custom notification catalogs
+
+`NotificationCatalog` is bound to the config-backed `NotificationCatalogConfigProvider`. To source types or channels from somewhere else — a database, a tenant, or a user's plan — bind your own implementation in a service provider:
+
+```php
+<?php
+
+namespace App\Providers;
+
+use App\Support\DatabaseNotificationCatalog;
+use Illuminate\Support\ServiceProvider;
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->singleton(NotificationCatalog::class, DatabaseNotificationCatalog::class);
+    }
+}
+```
+
+Both `RoutesViaNotifiablePreferences` and `NotificationPreferencesService` resolve the interface from the container, so replacing the binding changes routing and preferences together. Implement all six interface methods, return `list<string>` channel keys, and keep the singleton free of per-notifiable state — `availableNotificationChannelsFor()` and `requiredNotificationChannelsFor()` receive the notifiable for that reason.
+
 ## Laravel Boost
 
 This package ships AI guidelines and an on-demand agent skill for [Laravel Boost](https://laravel.com/docs/boost):

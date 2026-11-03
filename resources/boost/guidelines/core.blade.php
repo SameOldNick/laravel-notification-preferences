@@ -38,6 +38,7 @@ Configuration lives in `config/notifications.php` and is read through the `notif
 - Do not also define `via()` on a notification that uses `RoutesViaNotifiablePreferences`. The class method takes precedence and bypasses preference routing.
 - A channel with no stored preference is treated as enabled, so newly added channels reach existing users.
 - Use `SameOldNick\NotificationPreferences\Contracts\NotificationCatalog` to list notification types and channels, and to resolve the channels available to a specific type.
+- `NotificationCatalog` is bound to `NotificationCatalogConfigProvider`. Bind a custom implementation when types or channels come from a database, tenant, or plan; routing and preference services both resolve the interface, so one binding changes both. Keep the singleton stateless.
 - Use `SameOldNick\NotificationPreferences\Services\NotificationPreferencesService` to read and write preferences. The package ships no routes, controllers, or views, so the application must expose and validate its own endpoints.
 - Validate incoming types and channels against the catalog before updating. The service stores whatever it receives.
 

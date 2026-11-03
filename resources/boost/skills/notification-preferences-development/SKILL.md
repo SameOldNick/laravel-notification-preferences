@@ -227,6 +227,21 @@ public function update(Request $request)
 
 The package does not register routes, controllers, or views. Authentication, authorization, and the request shape are the application's responsibility.
 
+## Custom catalog implementations
+
+`NotificationCatalog` is a singleton bound to `NotificationCatalogConfigProvider`. Rebinding it changes both routing (`RoutesViaNotifiablePreferences`) and preference reads/writes (`NotificationPreferencesService`), because both resolve the interface from the container.
+
+```php
+$this->app->singleton(NotificationCatalog::class, DatabaseNotificationCatalog::class);
+```
+
+- Implement all six methods: `notificationTypes()`, `notificationChannels()`, `availableNotificationChannels()`, `requiredNotificationChannels()`, `availableNotificationChannelsFor()`, and `requiredNotificationChannelsFor()`.
+- Return the documented metadata shapes: types expose `label` and `category` plus optional channel lists; channels expose `label`.
+- Return `list<string>` channel keys. The resolver deduplicates and preserves order.
+- The per-notifiable methods receive the notifiable, so availability can depend on a plan, tenant, or other user state.
+- The catalog is a singleton. Do not store notifiable state on the instance; compute per call or memoize keyed by the notifiable.
+- `getPreferencesForNotifiable()` only uses `availableNotificationChannelsFor()`. Required channels affect delivery, not the returned preference list.
+
 ## Testing
 
 - Package tests: `composer test`, `composer lint`, `composer format`.
