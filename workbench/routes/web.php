@@ -4,8 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use SameOldNick\NotificationPreferences\Contracts\NotificationChannelProvider;
-use SameOldNick\NotificationPreferences\Contracts\NotificationTypeProvider;
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Services\NotificationPreferencesService;
 
 Route::get('/', function () {
@@ -22,21 +21,21 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::post('/notification-preferences', function (Request $request) {
         $notifiable = $request->user();
-        $notificationChannels = app(NotificationChannelProvider::class);
+        $notificationCatalog = app(NotificationCatalog::class);
 
         $rules = [
             'types' => [
                 'required',
                 'array',
-                Rule::arrayKeys(array_keys(app(NotificationTypeProvider::class)->notificationTypes())),
+                Rule::arrayKeys(array_keys($notificationCatalog->notificationTypes())),
             ],
-            'types.*.channels' => Rule::forEach(function (mixed $channels, string $attribute) use ($notificationChannels, $notifiable) {
+            'types.*.channels' => Rule::forEach(function (mixed $channels, string $attribute) use ($notificationCatalog, $notifiable) {
                 return [
                     'required',
                     'array',
 
                     // Restrict each type to the channels it can actually be delivered through for this notifiable.
-                    Rule::arrayKeys($notificationChannels->availableNotificationChannelsFor(
+                    Rule::arrayKeys($notificationCatalog->availableNotificationChannelsFor(
                         Str::between($attribute, 'types.', '.channels'),
                         $notifiable,
                     )),

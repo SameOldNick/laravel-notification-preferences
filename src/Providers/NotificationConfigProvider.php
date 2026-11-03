@@ -2,10 +2,18 @@
 
 namespace SameOldNick\NotificationPreferences\Providers;
 
-use SameOldNick\NotificationPreferences\Contracts\NotificationChannelProvider;
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 
-class NotificationChannelConfigProvider implements NotificationChannelProvider
+class NotificationConfigProvider implements NotificationCatalog
 {
+    /**
+     * {@inheritDoc}
+     */
+    public function notificationTypes(): array
+    {
+        return config('notifications.types', []);
+    }
+
     /**
      * {@inheritDoc}
      */

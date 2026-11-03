@@ -3,7 +3,7 @@
 namespace SameOldNick\NotificationPreferences\Concerns;
 
 use Illuminate\Notifications\AnonymousNotifiable;
-use SameOldNick\NotificationPreferences\Contracts\NotificationChannelProvider;
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Services\NotificationChannelResolver;
 
 trait RoutesViaNotifiablePreferences
@@ -44,7 +44,7 @@ trait RoutesViaNotifiablePreferences
      */
     protected function getAvailableChannels(mixed $notifiable): array
     {
-        return app(NotificationChannelProvider::class)->availableNotificationChannelsFor($this->notificationType(), $notifiable);
+        return app(NotificationCatalog::class)->availableNotificationChannelsFor($this->notificationType(), $notifiable);
     }
 
     /**
@@ -55,7 +55,7 @@ trait RoutesViaNotifiablePreferences
     public function getRequiredChannels(mixed $notifiable): array
     {
         return ! $notifiable instanceof AnonymousNotifiable ?
-            app(NotificationChannelProvider::class)->requiredNotificationChannelsFor($this->notificationType(), $notifiable) :
+            app(NotificationCatalog::class)->requiredNotificationChannelsFor($this->notificationType(), $notifiable) :
             [];
     }
 }

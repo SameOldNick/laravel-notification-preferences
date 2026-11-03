@@ -4,8 +4,7 @@ namespace SameOldNick\NotificationPreferences\Tests\Unit;
 
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
-use SameOldNick\NotificationPreferences\Contracts\NotificationChannelProvider;
-use SameOldNick\NotificationPreferences\Contracts\NotificationTypeProvider;
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Models\NotifiableNotificationPreference;
 use SameOldNick\NotificationPreferences\Services\NotificationPreferencesService;
 use SameOldNick\NotificationPreferences\Tests\Fixtures\Channel;
@@ -177,30 +176,26 @@ class NotificationPreferencesServiceTest extends TestCase
     {
         $notifiable = $this->createNotifiable();
 
-        $channelProvider = $this->mock(NotificationChannelProvider::class);
-        $channelProvider->expects('availableNotificationChannelsFor')
+        $catalog = $this->mock(NotificationCatalog::class);
+        $catalog->expects('availableNotificationChannelsFor')
             ->twice()
             ->withArgs(fn (string $type, object $subject): bool => $subject === $notifiable && isset(self::TYPES[$type]))
             ->andReturn(['mail', 'ntfy']);
+        $catalog->expects('notificationTypes')->once()->andReturn(self::TYPES);
 
-        $typeProvider = $this->mock(NotificationTypeProvider::class);
-        $typeProvider->expects('notificationTypes')->once()->andReturn(self::TYPES);
-
-        $service = new NotificationPreferencesService($channelProvider, $typeProvider);
+        $service = new NotificationPreferencesService($catalog);
 
         $service->getPreferencesForNotifiable($notifiable);
     }
 
     public function test_get_preferences_uses_the_channels_available_for_each_type(): void
     {
-        $channelProvider = $this->mock(NotificationChannelProvider::class);
-        $channelProvider->allows('availableNotificationChannelsFor')
+        $catalog = $this->mock(NotificationCatalog::class);
+        $catalog->allows('availableNotificationChannelsFor')
             ->andReturnUsing(fn (string $type): array => $type === 'login' ? ['mail', 'ntfy'] : ['mail']);
+        $catalog->allows('notificationTypes')->andReturn(self::TYPES);
 
-        $typeProvider = $this->mock(NotificationTypeProvider::class);
-        $typeProvider->allows('notificationTypes')->andReturn(self::TYPES);
-
-        $preferences = (new NotificationPreferencesService($channelProvider, $typeProvider))
+        $preferences = (new NotificationPreferencesService($catalog))
             ->getPreferencesForNotifiable($this->createNotifiable());
 
         $this->assertSame(
@@ -399,13 +394,11 @@ class NotificationPreferencesServiceTest extends TestCase
      */
     private function service(array $availableChannels = ['mail', 'ntfy'], ?array $types = null): NotificationPreferencesService
     {
-        $channelProvider = $this->mock(NotificationChannelProvider::class);
-        $channelProvider->allows('availableNotificationChannelsFor')->andReturn($availableChannels);
+        $catalog = $this->mock(NotificationCatalog::class);
+        $catalog->allows('availableNotificationChannelsFor')->andReturn($availableChannels);
+        $catalog->allows('notificationTypes')->andReturn($types ?? self::TYPES);
 
-        $typeProvider = $this->mock(NotificationTypeProvider::class);
-        $typeProvider->allows('notificationTypes')->andReturn($types ?? self::TYPES);
-
-        return new NotificationPreferencesService($channelProvider, $typeProvider);
+        return new NotificationPreferencesService($catalog);
     }
 
     /**

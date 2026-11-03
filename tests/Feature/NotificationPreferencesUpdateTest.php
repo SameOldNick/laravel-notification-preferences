@@ -2,7 +2,7 @@
 
 namespace SameOldNick\NotificationPreferences\Tests\Feature;
 
-use SameOldNick\NotificationPreferences\Contracts\NotificationChannelProvider;
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Models\NotifiableNotificationPreference;
 use SameOldNick\NotificationPreferences\Tests\TestCase;
 use Workbench\App\Models\User;
@@ -537,7 +537,7 @@ class NotificationPreferencesUpdateTest extends TestCase
      */
     private function bindAvailableChannelsForTypes(array $availableChannelsByType): void
     {
-        $this->app->instance(NotificationChannelProvider::class, new class($availableChannelsByType) implements NotificationChannelProvider
+        $this->app->instance(NotificationCatalog::class, new class($availableChannelsByType) implements NotificationCatalog
         {
             /**
              * @param  array<string, list<string>>  $availableChannelsByType
@@ -545,6 +545,11 @@ class NotificationPreferencesUpdateTest extends TestCase
             public function __construct(private readonly array $availableChannelsByType)
             {
                 //
+            }
+
+            public function notificationTypes(): array
+            {
+                return config('notifications.types', []);
             }
 
             public function notificationChannels(): array
