@@ -1,0 +1,234 @@
+---
+name: notification-preferences-development
+description: 'ACTIVATE when the user works with per-type notification channel preferences in a Laravel app: configuring notifications.channels, notifications.available_channels, notifications.required_channels, or notifications.types; adding the HasNotificationPreferences or RoutesViaNotifiablePreferences traits; overriding notificationType(); or building endpoints that read or update preferences with NotificationPreferencesService or NotificationCatalog. Activate when the user mentions notification preferences, opting out of channels, required channels, or this package. Do NOT activate for general Laravel notification sending, mail configuration, or queueing that does not involve per-type channel preferences.'
+license: MIT
+metadata:
+  author: SameOldNick
+---
+
+# Laravel Notification Preferences Development
+
+## Overview
+
+This package stores per-notifiable, per-type, per-channel preferences in the `notifiable_notification_preferences` table and resolves a notification's `via()` channels from them.
+
+- Available channels are offered to the user and can be disabled.
+- Required channels are always appended and cannot be disabled.
+- Channels without a stored preference are enabled, so new channels reach existing users.
+
+## When to use this skill
+
+Use it when adding, configuring, or debugging notification preferences, or when building the UI/API that reads and updates them.
+
+## Package map
+
+| Path | Purpose |
+| --- | --- |
+| `config/notifications.php` | Channel, available channel, required channel, and notification type configuration |
+| `src/Concerns/HasNotificationPreferences.php` | Adds the `notificationPreferences()` morph-many relation to a notifiable |
+| `src/Concerns/RoutesViaNotifiablePreferences.php` | Adds preference-aware `via()` and `notificationType()` to a notification |
+| `src/Contracts/NotificationCatalog.php` | Read-only catalog of types, channels, and per-type channel lists |
+| `src/Providers/NotificationCatalogConfigProvider.php` | Config-backed catalog implementation with per-type fallback rules |
+| `src/Services/NotificationChannelResolver.php` | Resolves the final channel list for a notifiable and type |
+| `src/Services/NotificationPreferencesService.php` | Reads and writes preferences for a notifiable |
+| `src/Models/NotifiableNotificationPreference.php` | Eloquent model for a single preference row |
+
+## Setup workflow
+
+- [ ] Require `sameoldnick/laravel-notification-preferences`.
+- [ ] Publish the config and migration with `php artisan vendor:publish --tag=notification-preferences-config` and `php artisan vendor:publish --tag=notification-preferences-migrations`, then run `php artisan migrate`.
+- [ ] Add `HasNotificationPreferences` to the notifiable model (usually `User`).
+- [ ] Add each channel to `notifications.channels` and `notifications.available_channels`.
+- [ ] Add each notification type to `notifications.types`.
+- [ ] Add `RoutesViaNotifiablePreferences` to each notification and override `notificationType()` when the default FQCN key is not desired.
+
+## Channel configuration
+
+```php
+// config/notifications.php
+return [
+    'channels' => [
+        'mail' => ['label' => 'Email'],
+        'database' => ['label' => 'In-app'],
+    ],
+
+    'available_channels' => ['mail', 'database'],
+
+    'required_channels' => ['database'],
+];
+```
+
+- `channels` supplies labels for display. It does not control delivery.
+- `available_channels` and `required_channels` drive behavior and must contain channel names Laravel can resolve: `mail`, `database`, `broadcast`, `vonage`, or a channel class name.
+- Labels may be plain strings or translation keys.
+- Required channels are appended even when they are not in `available_channels`. Only mark a channel required when the application can deliver through it.
+
+## Adding a notification type
+
+```php
+'types' => [
+    'security-alert' => [
+        'label' => 'Security Alert',
+        'category' => 'Security',
+    ],
+],
+```
+
+- The key must match the notification's `notificationType()` return value.
+- `label` and `category` are passed through `__()`. Missing translations fall back to the configured string.
+- A notification type that is not configured has no preference entries and cannot be managed by users. It still sends on the global available channels because the per-type lookup falls back to them.
+
+## Per-type channel overrides
+
+```php
+'types' => [
+    'security-alert' => [
+        'label' => 'Security Alert',
+        'category' => 'Security',
+        'available_channels' => ['mail', 'database'],
+        'required_channels' => ['mail'],
+    ],
+
+    'marketing' => [
+        'label' => 'Marketing',
+        'category' => 'General',
+        'required_channels' => [],
+    ],
+],
+```
+
+- Missing or `null` falls back to the matching global list.
+- `[]` opts out of the global list; `'required_channels' => []` forces nothing for that type.
+- Overrides apply only to the type that declares them.
+- A type with no available channels produces no preference entries.
+
+## Notification wiring
+
+```php
+<?php
+
+namespace App\Notifications;
+
+use Illuminate\Notifications\Notification;
+use SameOldNick\NotificationPreferences\Concerns\RoutesViaNotifiablePreferences;
+
+class SecurityAlert extends Notification
+{
+    use RoutesViaNotifiablePreferences;
+
+    public function notificationType(): string
+    {
+        return 'security-alert';
+    }
+
+    // ...
+}
+```
+
+- `notificationType()` defaults to the notification's fully-qualified class name.
+- Do not also define `via()`. A method on the class takes precedence over the trait and bypasses preference resolution.
+- Anonymous notifiables receive the available channels but never the required channels.
+
+## Channel resolution
+
+`RoutesViaNotifiablePreferences::via()` calls `NotificationChannelResolver::viaNotifiablePreferencesWithRequiredChannels()`, which:
+
+1. Starts with the available channels for the type.
+2. Removes channels with an explicit disabled preference row.
+3. Appends the required channels for the type.
+4. Deduplicates while preserving order.
+
+If the notifiable is `null`, the trait returns no channels at all. If the notifiable has no `notificationPreferences()` method or the type has no available channels, the available channels are returned unchanged, and required channels are still appended when the notifiable supports preferences.
+
+## Reading preferences
+
+```php
+use SameOldNick\NotificationPreferences\Services\NotificationPreferencesService;
+
+$preferences = app(NotificationPreferencesService::class)
+    ->getPreferencesForNotifiable($request->user());
+```
+
+The result is keyed by `"{channel}:{type}"` and contains one entry per configured type/available-channel pair:
+
+```php
+[
+    'mail:security-alert' => [
+        'enabled' => true,
+        'key' => 'security-alert',
+        'label' => 'Security Alert',
+        'category' => 'Security',
+        'channel' => 'mail',
+    ],
+]
+```
+
+Required channels that are not in the type's available channels are not returned, since users cannot toggle them.
+
+## Updating preferences
+
+```php
+use SameOldNick\NotificationPreferences\Services\NotificationPreferencesService;
+
+app(NotificationPreferencesService::class)->updatePreferencesForNotifiable($request->user(), [
+    'security-alert' => [
+        'channels' => [
+            'mail' => false,
+            'database' => true,
+        ],
+    ],
+]);
+```
+
+- The payload shape is `[type => ['channels' => [channel => bool]]]`.
+- Existing rows are updated, missing rows are created, and unchanged rows are skipped.
+- The service performs no validation. Reject unknown types and channels before calling it.
+- Both methods throw `InvalidArgumentException` when the model does not use `HasNotificationPreferences`.
+- Preference rows for channels later removed from `available_channels` are ignored; they do not need to be deleted.
+
+## Validating input
+
+Validate against `NotificationCatalog` so users cannot submit types or channels the application does not support:
+
+```php
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
+use SameOldNick\NotificationPreferences\Services\NotificationPreferencesService;
+
+public function update(Request $request)
+{
+    $catalog = app(NotificationCatalog::class);
+    $notifiable = $request->user();
+
+    $validated = $request->validate([
+        'types' => [
+            'required',
+            'array:'.implode(',', array_keys($catalog->notificationTypes())),
+        ],
+        'types.*.channels' => Rule::forEach(function (mixed $channels, string $attribute) use ($catalog, $notifiable) {
+            $type = Str::between($attribute, 'types.', '.channels');
+
+            return [
+                'required',
+                'array:'.implode(',', $catalog->availableNotificationChannelsFor($type, $notifiable)),
+            ];
+        }),
+        'types.*.channels.*' => ['required', 'boolean'],
+    ]);
+
+    app(NotificationPreferencesService::class)
+        ->updatePreferencesForNotifiable($notifiable, $validated['types']);
+
+    return response()->noContent();
+}
+```
+
+The package does not register routes, controllers, or views. Authentication, authorization, and the request shape are the application's responsibility.
+
+## Testing
+
+- Package tests: `composer test`, `composer lint`, `composer format`.
+- Application tests: override configuration per test with `config(['notifications.available_channels' => ['mail', 'database']])` and use `RefreshDatabase`.
+- Create preference rows through the relation: `$user->notificationPreferences()->create(['notification_type' => 'security-alert', 'channel' => 'mail', 'enabled' => false])`.

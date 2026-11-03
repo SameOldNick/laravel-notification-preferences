@@ -204,7 +204,12 @@ Validate the incoming types and channels against `SameOldNick\NotificationPrefer
 
 ## Laravel Boost
 
-This package ships Boost AI guidelines in `resources/boost/guidelines/core.blade.php`. They are installed automatically when an application runs `php artisan boost:install`.
+This package ships AI guidelines and an on-demand agent skill for [Laravel Boost](https://laravel.com/docs/boost):
+
+- Guidelines: `resources/boost/guidelines/core.blade.php`
+- Skill: `resources/boost/skills/notification-preferences-development/SKILL.md`
+
+Both are installed automatically when an application runs `php artisan boost:install` (skills depend on the user selecting the skills feature).
 
 ## Development
 

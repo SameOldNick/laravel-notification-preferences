@@ -1,1 +1,44 @@
 ## Laravel Notification Preferences
+
+This package lets a notifiable (usually the `User` model) enable or disable each delivery channel per notification type. Required channels are always delivered, even when a user has disabled them.
+
+### Setup
+
+- Install with `composer require sameoldnick/laravel-notification-preferences`.
+- Publish the configuration and migration with `php artisan vendor:publish --tag=notification-preferences-config` and `php artisan vendor:publish --tag=notification-preferences-migrations`, then run `php artisan migrate`.
+- Add `SameOldNick\NotificationPreferences\Concerns\HasNotificationPreferences` to the notifiable model.
+- Add `SameOldNick\NotificationPreferences\Concerns\RoutesViaNotifiablePreferences` to every notification that should respect preferences.
+
+### Configuration
+
+Configuration lives in `config/notifications.php` and is read through the `notifications.*` keys.
+
+- `channels` maps a channel key to `['label' => ...]`. Keys must match the channel names returned from `via()`, such as `mail`, `database`, `broadcast`, or a channel class name.
+- `available_channels` lists the channels users can toggle. Each one is enabled until the user disables it.
+- `required_channels` lists channels that are appended to every notification of a type, even when disabled. They do not need to appear in `available_channels`, but they must be channels the application can deliver through.
+- `types` is keyed by the value returned from `notificationType()`. Each type requires `label` and `category`, both of which may be translation keys.
+- A type may override `available_channels` and `required_channels`. A missing or `null` value falls back to the global list, while `[]` opts out entirely.
+
+@verbatim
+<code-snippet name="Notification type configuration" lang="php">
+'types' => [
+    'security-alert' => [
+        'label' => 'Security Alert',
+        'category' => 'Security',
+        'available_channels' => ['mail', 'database'],
+        'required_channels' => ['mail'],
+    ],
+],
+</code-snippet>
+@endverbatim
+
+### Conventions
+
+- `notificationType()` defaults to the notification's fully-qualified class name. When overriding it, return a key that exists in `notifications.types`; otherwise users cannot manage that notification.
+- Do not also define `via()` on a notification that uses `RoutesViaNotifiablePreferences`. The class method takes precedence and bypasses preference routing.
+- A channel with no stored preference is treated as enabled, so newly added channels reach existing users.
+- Use `SameOldNick\NotificationPreferences\Contracts\NotificationCatalog` to list notification types and channels, and to resolve the channels available to a specific type.
+- Use `SameOldNick\NotificationPreferences\Services\NotificationPreferencesService` to read and write preferences. The package ships no routes, controllers, or views, so the application must expose and validate its own endpoints.
+- Validate incoming types and channels against the catalog before updating. The service stores whatever it receives.
+
+For detailed workflows, use the `notification-preferences-development` Boost skill.
