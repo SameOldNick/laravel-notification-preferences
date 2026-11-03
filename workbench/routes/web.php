@@ -26,16 +26,14 @@ Route::group(['middleware' => ['auth']], function () {
         $rules = [
             'types' => [
                 'required',
-                'array',
-                Rule::arrayKeys(array_keys($notificationCatalog->notificationTypes())),
+                'array:'.implode(',', array_keys($notificationCatalog->notificationTypes())),
             ],
             'types.*.channels' => Rule::forEach(function (mixed $channels, string $attribute) use ($notificationCatalog, $notifiable) {
                 return [
                     'required',
-                    'array',
 
                     // Restrict each type to the channels it can actually be delivered through for this notifiable.
-                    Rule::arrayKeys($notificationCatalog->availableNotificationChannelsFor(
+                    'array:'.implode(',', $notificationCatalog->availableNotificationChannelsFor(
                         Str::between($attribute, 'types.', '.channels'),
                         $notifiable,
                     )),
