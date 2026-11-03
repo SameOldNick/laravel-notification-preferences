@@ -5,12 +5,12 @@ use SameOldNick\NotificationPreferences\Tests\Fixtures\TestNotification;
 return [
     /*
     |--------------------------------------------------------------------------
-    | Notifications Configuration
+    | Notification Preferences Configuration
     |--------------------------------------------------------------------------
     |
-    | This file is for storing the configuration settings related to notifications.
-    | You can define default channels, notification types, and other settings
-    | that will be used throughout the application.
+    | This file is for storing the configuration settings related to notification
+    | preferences. You can define channels, notification types, and other
+    | settings that will be used throughout the application.
     |
     */
 

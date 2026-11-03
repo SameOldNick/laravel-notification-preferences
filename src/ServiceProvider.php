@@ -21,7 +21,7 @@ class ServiceProvider extends BaseServiceProvider
         ], 'notification-preferences-migrations');
 
         // Merge the package configuration so that the default driver is set, but allow the user to override it in their own config.
-        $this->mergeConfigFrom(__DIR__.'/../config/notifications.php', 'notifications');
+        $this->mergeConfigFrom(__DIR__.'/../config/notification-preferences.php', 'notification-preferences');
     }
 
     /**
@@ -32,7 +32,7 @@ class ServiceProvider extends BaseServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__.'/../config/notifications.php' => config_path('notifications.php'),
+            __DIR__.'/../config/notification-preferences.php' => config_path('notification-preferences.php'),
         ], 'notification-preferences-config');
     }
 }

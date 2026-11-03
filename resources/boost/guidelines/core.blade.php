@@ -11,7 +11,7 @@ This package lets a notifiable (usually the `User` model) enable or disable each
 
 ### Configuration
 
-Configuration lives in `config/notifications.php` and is read through the `notifications.*` keys.
+Configuration lives in `config/notification-preferences.php` and is read through the `notification-preferences.*` keys.
 
 - `channels` maps a channel key to `['label' => ...]`. Keys must match the channel names returned from `via()`, such as `mail`, `database`, `broadcast`, or a channel class name.
 - `available_channels` lists the channels users can toggle. Each one is enabled until the user disables it.
@@ -34,7 +34,7 @@ Configuration lives in `config/notifications.php` and is read through the `notif
 
 ### Conventions
 
-- `notificationType()` defaults to the notification's fully-qualified class name. When overriding it, return a key that exists in `notifications.types`; otherwise users cannot manage that notification.
+- `notificationType()` defaults to the notification's fully-qualified class name. When overriding it, return a key that exists in `notification-preferences.types`; otherwise users cannot manage that notification.
 - Do not also define `via()` on a notification that uses `RoutesViaNotifiablePreferences`. The class method takes precedence and bypasses preference routing.
 - A channel with no stored preference is treated as enabled, so newly added channels reach existing users.
 - Use `SameOldNick\NotificationPreferences\Contracts\NotificationCatalog` to list notification types and channels, and to resolve the channels available to a specific type.

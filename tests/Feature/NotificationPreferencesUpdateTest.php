@@ -14,12 +14,12 @@ class NotificationPreferencesUpdateTest extends TestCase
         parent::setUp();
 
         config([
-            'notifications.types' => [
+            'notification-preferences.types' => [
                 'login' => ['label' => 'Login', 'category' => 'Security'],
                 'password_change' => ['label' => 'Password Change', 'category' => 'Security'],
                 'backup_failed' => ['label' => 'Backup Failed', 'category' => 'Backups'],
             ],
-            'notifications.available_channels' => ['mail', 'ntfy'],
+            'notification-preferences.available_channels' => ['mail', 'ntfy'],
         ]);
     }
 
@@ -401,7 +401,7 @@ class NotificationPreferencesUpdateTest extends TestCase
     {
         // Desired: with nothing available, no channel should be accepted. Currently the
         // empty allow-list degrades to an unconstrained "array" rule, so any channel persists.
-        config(['notifications.available_channels' => []]);
+        config(['notification-preferences.available_channels' => []]);
 
         $notifiable = $this->createNotifiable();
 
@@ -463,7 +463,7 @@ class NotificationPreferencesUpdateTest extends TestCase
 
     public function test_update_rejects_every_type_when_no_types_are_configured(): void
     {
-        config(['notifications.types' => []]);
+        config(['notification-preferences.types' => []]);
 
         $notifiable = $this->createNotifiable();
 
@@ -549,7 +549,7 @@ class NotificationPreferencesUpdateTest extends TestCase
 
             public function notificationTypes(): array
             {
-                return config('notifications.types', []);
+                return config('notification-preferences.types', []);
             }
 
             public function notificationChannels(): array

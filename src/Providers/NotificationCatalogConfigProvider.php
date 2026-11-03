@@ -23,7 +23,7 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     public function notificationTypes(): array
     {
-        return $this->config->get('notifications.types', []);
+        return $this->config->get('notification-preferences.types', []);
     }
 
     /**
@@ -31,7 +31,7 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     public function notificationChannels(): array
     {
-        return $this->config->get('notifications.channels', []);
+        return $this->config->get('notification-preferences.channels', []);
     }
 
     /**
@@ -39,7 +39,7 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     public function availableNotificationChannels(): array
     {
-        return $this->config->get('notifications.available_channels', []);
+        return $this->config->get('notification-preferences.available_channels', []);
     }
 
     /**
@@ -47,7 +47,7 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     public function requiredNotificationChannels(): array
     {
-        return $this->config->get('notifications.required_channels', []);
+        return $this->config->get('notification-preferences.required_channels', []);
     }
 
     /**
@@ -76,11 +76,11 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     private function channelsForType(string $notificationType, string $key): array
     {
-        $configKey = "notifications.types.{$notificationType}.{$key}";
+        $configKey = "notification-preferences.types.{$notificationType}.{$key}";
         $channels = $this->config->get($configKey);
 
         if ($channels === null) {
-            $configKey = "notifications.{$key}";
+            $configKey = "notification-preferences.{$key}";
             $channels = $this->config->get($configKey, []);
         }
 

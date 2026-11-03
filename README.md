@@ -52,7 +52,7 @@ class User extends Authenticatable
 
 ## Configuration
 
-The published configuration file is `config/notifications.php`.
+The published configuration file is `config/notification-preferences.php`.
 
 ### Channels
 
@@ -65,7 +65,7 @@ Three top-level keys configure channels:
 ```php
 <?php
 
-// config/notifications.php
+// config/notification-preferences.php
 
 return [
     'channels' => [
@@ -167,7 +167,7 @@ The trait provides `via()`. Do not also define `via()` on the notification, or i
 
 ### Mapping a notification to a type
 
-By default, `notificationType()` returns the notification's fully-qualified class name, which must exist as a key in `notifications.types`. To use a shorter key instead, override the method:
+By default, `notificationType()` returns the notification's fully-qualified class name, which must exist as a key in `notification-preferences.types`. To use a shorter key instead, override the method:
 
 ```php
 public function notificationType(): string
@@ -176,7 +176,7 @@ public function notificationType(): string
 }
 ```
 
-The returned value must match a key in `notifications.types`.
+The returned value must match a key in `notification-preferences.types`.
 
 ### Reading and updating preferences
 

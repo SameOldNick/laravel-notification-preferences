@@ -16,12 +16,12 @@ class NotificationTest extends TestCase
         parent::setUp();
 
         config([
-            'notifications.types' => [
+            'notification-preferences.types' => [
                 'login' => ['label' => 'Login', 'category' => 'Security'],
                 'backup_failed' => ['label' => 'Backup Failed', 'category' => 'Backups'],
             ],
-            'notifications.available_channels' => ['mail', 'ntfy'],
-            'notifications.required_channels' => [],
+            'notification-preferences.available_channels' => ['mail', 'ntfy'],
+            'notification-preferences.required_channels' => [],
         ]);
     }
 
@@ -151,7 +151,7 @@ class NotificationTest extends TestCase
 
     public function test_via_returns_no_channels_when_no_channels_are_available(): void
     {
-        config(['notifications.available_channels' => []]);
+        config(['notification-preferences.available_channels' => []]);
 
         $notifiable = $this->createNotifiable();
 
@@ -160,7 +160,7 @@ class NotificationTest extends TestCase
 
     public function test_via_returns_channels_in_configured_order(): void
     {
-        config(['notifications.available_channels' => ['ntfy', 'mail']]);
+        config(['notification-preferences.available_channels' => ['ntfy', 'mail']]);
 
         $notifiable = $this->createNotifiable();
 
@@ -169,7 +169,7 @@ class NotificationTest extends TestCase
 
     public function test_via_deduplicates_available_channels(): void
     {
-        config(['notifications.available_channels' => ['mail', 'mail', 'ntfy']]);
+        config(['notification-preferences.available_channels' => ['mail', 'mail', 'ntfy']]);
 
         $notifiable = $this->createNotifiable();
 
@@ -178,7 +178,7 @@ class NotificationTest extends TestCase
 
     public function test_via_includes_a_required_channel_even_when_it_is_disabled(): void
     {
-        config(['notifications.required_channels' => ['mail']]);
+        config(['notification-preferences.required_channels' => ['mail']]);
 
         $notifiable = $this->createNotifiable();
         $this->createPreference($notifiable, 'login', 'mail', false);
@@ -189,7 +189,7 @@ class NotificationTest extends TestCase
 
     public function test_via_does_not_duplicate_a_required_channel(): void
     {
-        config(['notifications.required_channels' => ['mail']]);
+        config(['notification-preferences.required_channels' => ['mail']]);
 
         $notifiable = $this->createNotifiable();
 
@@ -198,7 +198,7 @@ class NotificationTest extends TestCase
 
     public function test_via_appends_required_channels_that_are_not_available(): void
     {
-        config(['notifications.required_channels' => ['database']]);
+        config(['notification-preferences.required_channels' => ['database']]);
 
         $notifiable = $this->createNotifiable();
 
@@ -207,7 +207,7 @@ class NotificationTest extends TestCase
 
     public function test_required_channels_returns_configured_channels_for_a_notifiable(): void
     {
-        config(['notifications.required_channels' => ['mail', 'database']]);
+        config(['notification-preferences.required_channels' => ['mail', 'database']]);
 
         $notifiable = $this->createNotifiable();
 
@@ -216,7 +216,7 @@ class NotificationTest extends TestCase
 
     public function test_required_channels_is_empty_for_an_anonymous_notifiable(): void
     {
-        config(['notifications.required_channels' => ['mail']]);
+        config(['notification-preferences.required_channels' => ['mail']]);
 
         $this->assertSame([], (new TestNotification([], 'login'))->getRequiredChannels(new AnonymousNotifiable));
     }
@@ -274,7 +274,7 @@ class NotificationTest extends TestCase
     public function test_notification_is_sent_on_a_required_channel_when_disabled(): void
     {
         Notification::fake();
-        config(['notifications.required_channels' => ['mail']]);
+        config(['notification-preferences.required_channels' => ['mail']]);
 
         $notifiable = $this->createNotifiable();
         $this->createPreference($notifiable, 'login', 'mail', false);

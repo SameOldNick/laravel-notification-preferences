@@ -1,6 +1,6 @@
 ---
 name: notification-preferences-development
-description: 'ACTIVATE when the user works with per-type notification channel preferences in a Laravel app: configuring notifications.channels, notifications.available_channels, notifications.required_channels, or notifications.types; adding the HasNotificationPreferences or RoutesViaNotifiablePreferences traits; overriding notificationType(); or building endpoints that read or update preferences with NotificationPreferencesService or NotificationCatalog. Activate when the user mentions notification preferences, opting out of channels, required channels, or this package. Do NOT activate for general Laravel notification sending, mail configuration, or queueing that does not involve per-type channel preferences.'
+description: 'ACTIVATE when the user works with per-type notification channel preferences in a Laravel app: configuring notification-preferences.channels, notification-preferences.available_channels, notification-preferences.required_channels, or notification-preferences.types; adding the HasNotificationPreferences or RoutesViaNotifiablePreferences traits; overriding notificationType(); or building endpoints that read or update preferences with NotificationPreferencesService or NotificationCatalog. Activate when the user mentions notification preferences, opting out of channels, required channels, or this package. Do NOT activate for general Laravel notification sending, mail configuration, or queueing that does not involve per-type channel preferences.'
 license: MIT
 metadata:
   author: SameOldNick
@@ -24,7 +24,7 @@ Use it when adding, configuring, or debugging notification preferences, or when 
 
 | Path | Purpose |
 | --- | --- |
-| `config/notifications.php` | Channel, available channel, required channel, and notification type configuration |
+| `config/notification-preferences.php` | Channel, available channel, required channel, and notification type configuration |
 | `src/Concerns/HasNotificationPreferences.php` | Adds the `notificationPreferences()` morph-many relation to a notifiable |
 | `src/Concerns/RoutesViaNotifiablePreferences.php` | Adds preference-aware `via()` and `notificationType()` to a notification |
 | `src/Contracts/NotificationCatalog.php` | Read-only catalog of types, channels, and per-type channel lists |
@@ -38,14 +38,14 @@ Use it when adding, configuring, or debugging notification preferences, or when 
 - [ ] Require `sameoldnick/laravel-notification-preferences`.
 - [ ] Publish the config and migration with `php artisan vendor:publish --tag=notification-preferences-config` and `php artisan vendor:publish --tag=notification-preferences-migrations`, then run `php artisan migrate`.
 - [ ] Add `HasNotificationPreferences` to the notifiable model (usually `User`).
-- [ ] Add each channel to `notifications.channels` and `notifications.available_channels`.
-- [ ] Add each notification type to `notifications.types`.
+- [ ] Add each channel to `notification-preferences.channels` and `notification-preferences.available_channels`.
+- [ ] Add each notification type to `notification-preferences.types`.
 - [ ] Add `RoutesViaNotifiablePreferences` to each notification and override `notificationType()` when the default FQCN key is not desired.
 
 ## Channel configuration
 
 ```php
-// config/notifications.php
+// config/notification-preferences.php
 return [
     'channels' => [
         'mail' => ['label' => 'Email'],
@@ -245,5 +245,5 @@ $this->app->singleton(NotificationCatalog::class, DatabaseNotificationCatalog::c
 ## Testing
 
 - Package tests: `composer test`, `composer lint`, `composer format`.
-- Application tests: override configuration per test with `config(['notifications.available_channels' => ['mail', 'database']])` and use `RefreshDatabase`.
+- Application tests: override configuration per test with `config(['notification-preferences.available_channels' => ['mail', 'database']])` and use `RefreshDatabase`.
 - Create preference rows through the relation: `$user->notificationPreferences()->create(['notification_type' => 'security-alert', 'channel' => 'mail', 'enabled' => false])`.

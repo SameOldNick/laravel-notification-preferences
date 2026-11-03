@@ -14,18 +14,18 @@ class NotificationCatalogConfigProviderTest extends TestCase
         parent::setUp();
 
         config([
-            'notifications.types' => [
+            'notification-preferences.types' => [
                 'login' => ['label' => 'Login', 'category' => 'Security'],
                 'backup_failed' => ['label' => 'Backup Failed', 'category' => 'Backups'],
             ],
-            'notifications.available_channels' => ['mail', 'ntfy'],
-            'notifications.required_channels' => ['app'],
+            'notification-preferences.available_channels' => ['mail', 'ntfy'],
+            'notification-preferences.required_channels' => ['app'],
         ]);
     }
 
     public function test_available_channels_uses_the_global_channels_when_the_type_value_is_null(): void
     {
-        config(['notifications.types.login.available_channels' => null]);
+        config(['notification-preferences.types.login.available_channels' => null]);
 
         $this->assertSame(
             ['mail', 'ntfy'],
@@ -43,7 +43,7 @@ class NotificationCatalogConfigProviderTest extends TestCase
 
     public function test_available_channels_uses_the_type_specific_channels(): void
     {
-        config(['notifications.types.login.available_channels' => ['mail']]);
+        config(['notification-preferences.types.login.available_channels' => ['mail']]);
 
         $this->assertSame(
             ['mail'],
@@ -53,7 +53,7 @@ class NotificationCatalogConfigProviderTest extends TestCase
 
     public function test_available_channels_does_not_use_the_global_channels_when_the_type_value_is_empty(): void
     {
-        config(['notifications.types.login.available_channels' => []]);
+        config(['notification-preferences.types.login.available_channels' => []]);
 
         $this->assertSame(
             [],
@@ -63,7 +63,7 @@ class NotificationCatalogConfigProviderTest extends TestCase
 
     public function test_available_channels_is_scoped_to_the_requested_type(): void
     {
-        config(['notifications.types.login.available_channels' => ['mail']]);
+        config(['notification-preferences.types.login.available_channels' => ['mail']]);
 
         $this->assertSame(
             ['mail', 'ntfy'],
@@ -73,7 +73,7 @@ class NotificationCatalogConfigProviderTest extends TestCase
 
     public function test_available_channels_reindexes_the_type_specific_channels(): void
     {
-        config(['notifications.types.login.available_channels' => ['primary' => 'mail', 'secondary' => 'ntfy']]);
+        config(['notification-preferences.types.login.available_channels' => ['primary' => 'mail', 'secondary' => 'ntfy']]);
 
         $this->assertSame(
             ['mail', 'ntfy'],
@@ -83,17 +83,17 @@ class NotificationCatalogConfigProviderTest extends TestCase
 
     public function test_available_channels_throws_when_the_type_value_is_not_an_array_or_null(): void
     {
-        config(['notifications.types.login.available_channels' => 'mail']);
+        config(['notification-preferences.types.login.available_channels' => 'mail']);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The [notifications.types.login.available_channels] configuration value must be an array or null, string given.');
+        $this->expectExceptionMessage('The [notification-preferences.types.login.available_channels] configuration value must be an array or null, string given.');
 
         $this->catalog()->availableNotificationChannelsFor('login', new stdClass);
     }
 
     public function test_required_channels_uses_the_global_channels_when_the_type_value_is_null(): void
     {
-        config(['notifications.types.login.required_channels' => null]);
+        config(['notification-preferences.types.login.required_channels' => null]);
 
         $this->assertSame(
             ['app'],
@@ -111,7 +111,7 @@ class NotificationCatalogConfigProviderTest extends TestCase
 
     public function test_required_channels_uses_the_type_specific_channels(): void
     {
-        config(['notifications.types.login.required_channels' => ['mail']]);
+        config(['notification-preferences.types.login.required_channels' => ['mail']]);
 
         $this->assertSame(
             ['mail'],
@@ -121,7 +121,7 @@ class NotificationCatalogConfigProviderTest extends TestCase
 
     public function test_required_channels_does_not_use_the_global_channels_when_the_type_value_is_empty(): void
     {
-        config(['notifications.types.login.required_channels' => []]);
+        config(['notification-preferences.types.login.required_channels' => []]);
 
         $this->assertSame(
             [],
@@ -131,7 +131,7 @@ class NotificationCatalogConfigProviderTest extends TestCase
 
     public function test_required_channels_is_scoped_to_the_requested_type(): void
     {
-        config(['notifications.types.login.required_channels' => ['mail']]);
+        config(['notification-preferences.types.login.required_channels' => ['mail']]);
 
         $this->assertSame(
             ['app'],
@@ -141,10 +141,10 @@ class NotificationCatalogConfigProviderTest extends TestCase
 
     public function test_required_channels_throws_when_the_type_value_is_not_an_array_or_null(): void
     {
-        config(['notifications.types.login.required_channels' => 'app']);
+        config(['notification-preferences.types.login.required_channels' => 'app']);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The [notifications.types.login.required_channels] configuration value must be an array or null, string given.');
+        $this->expectExceptionMessage('The [notification-preferences.types.login.required_channels] configuration value must be an array or null, string given.');
 
         $this->catalog()->requiredNotificationChannelsFor('login', new stdClass);
     }

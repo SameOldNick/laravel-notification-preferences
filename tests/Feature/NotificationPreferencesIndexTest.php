@@ -13,12 +13,12 @@ class NotificationPreferencesIndexTest extends TestCase
         parent::setUp();
 
         config([
-            'notifications.types' => [
+            'notification-preferences.types' => [
                 'login' => ['label' => 'Login', 'category' => 'Security'],
                 'password_change' => ['label' => 'Password Change', 'category' => 'Security'],
                 'backup_failed' => ['label' => 'Backup Failed', 'category' => 'Backups'],
             ],
-            'notifications.available_channels' => ['mail', 'ntfy'],
+            'notification-preferences.available_channels' => ['mail', 'ntfy'],
         ]);
     }
 
@@ -205,7 +205,7 @@ class NotificationPreferencesIndexTest extends TestCase
 
     public function test_index_only_returns_configured_available_channels(): void
     {
-        config(['notifications.available_channels' => ['mail']]);
+        config(['notification-preferences.available_channels' => ['mail']]);
 
         $notifiable = $this->createNotifiable();
 
@@ -235,7 +235,7 @@ class NotificationPreferencesIndexTest extends TestCase
 
     public function test_index_returns_an_empty_payload_when_no_types_are_configured(): void
     {
-        config(['notifications.types' => []]);
+        config(['notification-preferences.types' => []]);
 
         $notifiable = $this->createNotifiable();
 
@@ -247,7 +247,7 @@ class NotificationPreferencesIndexTest extends TestCase
 
     public function test_index_returns_an_empty_payload_when_no_channels_are_available(): void
     {
-        config(['notifications.available_channels' => []]);
+        config(['notification-preferences.available_channels' => []]);
 
         $notifiable = $this->createNotifiable();
 
@@ -265,13 +265,13 @@ class NotificationPreferencesIndexTest extends TestCase
         ], 'en');
 
         config([
-            'notifications.types' => [
+            'notification-preferences.types' => [
                 'login' => [
                     'label' => 'messages.notifications.login.label',
                     'category' => 'messages.notifications.login.category',
                 ],
             ],
-            'notifications.available_channels' => ['mail'],
+            'notification-preferences.available_channels' => ['mail'],
         ]);
 
         $notifiable = $this->createNotifiable();
@@ -300,10 +300,10 @@ class NotificationPreferencesIndexTest extends TestCase
             ->assertJsonCount(6);
 
         config([
-            'notifications.types' => [
+            'notification-preferences.types' => [
                 'login' => ['label' => 'Sign In', 'category' => 'Account'],
             ],
-            'notifications.available_channels' => ['mail'],
+            'notification-preferences.available_channels' => ['mail'],
         ]);
 
         $this->actingAs($notifiable)
