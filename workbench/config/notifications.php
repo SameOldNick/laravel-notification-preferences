@@ -63,6 +63,10 @@ return [
     | or remove notification types as needed. The notification types will be used
     | to look up user preferences and determine which channels to send notifications through.
     |
+    | A type may also define its own `available_channels` and `required_channels`
+    | lists. A null or missing value falls back to the global lists defined above,
+    | while an empty array opts the type out of them entirely.
+    |
     */
     'types' => [
         'login' => [
