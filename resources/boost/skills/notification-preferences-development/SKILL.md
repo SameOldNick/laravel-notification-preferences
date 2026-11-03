@@ -165,6 +165,8 @@ The result is keyed by `"{channel}:{type}"` and contains one entry per configure
 
 Required channels that are not in the type's available channels are not returned, since users cannot toggle them.
 
+Type labels and categories are translated by the service. Channel labels are not included; get them from `NotificationCatalog::notificationChannels()` and translate them with `__()` when rendering.
+
 ## Updating preferences
 
 ```php

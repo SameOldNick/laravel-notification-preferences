@@ -200,6 +200,21 @@ $service->updatePreferencesForNotifiable($user, [
 ]);
 ```
 
+`getPreferencesForNotifiable()` returns type labels and categories, but only channel keys. To display channel names (for example, as column headings), resolve the catalog and call `notificationChannels()`:
+
+```php
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
+
+$channels = app(NotificationCatalog::class)->notificationChannels();
+
+// [
+//     'mail' => ['label' => 'Email'],
+//     'database' => ['label' => 'In-app'],
+// ]
+```
+
+Channel labels may be translation keys, so pass them through `__()` before displaying them.
+
 Validate the incoming types and channels against `SameOldNick\NotificationPreferences\Contracts\NotificationCatalog` before calling `updatePreferencesForNotifiable()`, since the service stores whatever it is given.
 
 ### Custom notification catalogs

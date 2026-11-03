@@ -23,6 +23,41 @@ class NotificationCatalogConfigProviderTest extends TestCase
         ]);
     }
 
+    public function test_notification_channels_returns_the_configured_channels_with_their_labels(): void
+    {
+        config([
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email'],
+                'ntfy' => ['label' => 'Ntfy'],
+            ],
+        ]);
+
+        $this->assertSame(
+            [
+                'mail' => ['label' => 'Email'],
+                'ntfy' => ['label' => 'Ntfy'],
+            ],
+            $this->catalog()->notificationChannels(),
+        );
+    }
+
+    public function test_notification_channels_is_empty_when_no_channels_are_configured(): void
+    {
+        config(['notification-preferences.channels' => []]);
+
+        $this->assertSame([], $this->catalog()->notificationChannels());
+    }
+
+    public function test_available_channels_returns_the_global_channels(): void
+    {
+        $this->assertSame(['mail', 'ntfy'], $this->catalog()->availableNotificationChannels());
+    }
+
+    public function test_required_channels_returns_the_global_channels(): void
+    {
+        $this->assertSame(['app'], $this->catalog()->requiredNotificationChannels());
+    }
+
     public function test_available_channels_uses_the_global_channels_when_the_type_value_is_null(): void
     {
         config(['notification-preferences.types.login.available_channels' => null]);
