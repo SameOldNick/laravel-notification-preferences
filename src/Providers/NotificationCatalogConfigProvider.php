@@ -2,16 +2,27 @@
 
 namespace SameOldNick\NotificationPreferences\Providers;
 
+use Illuminate\Contracts\Config\Repository;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 
 class NotificationCatalogConfigProvider implements NotificationCatalog
 {
     /**
+     * Create a new instance of the NotificationCatalogConfigProvider.
+     *
+     * @return void
+     */
+    public function __construct(private readonly Repository $config)
+    {
+        //
+    }
+
+    /**
      * {@inheritDoc}
      */
     public function notificationTypes(): array
     {
-        return config('notifications.types', []);
+        return $this->config->get('notifications.types', []);
     }
 
     /**
@@ -19,7 +30,7 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     public function notificationChannels(): array
     {
-        return config('notifications.channels', []);
+        return $this->config->get('notifications.channels', []);
     }
 
     /**
@@ -27,7 +38,7 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     public function availableNotificationChannels(): array
     {
-        return config('notifications.available_channels', []);
+        return $this->config->get('notifications.available_channels', []);
     }
 
     /**
@@ -35,7 +46,7 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     public function requiredNotificationChannels(): array
     {
-        return config('notifications.required_channels', []);
+        return $this->config->get('notifications.required_channels', []);
     }
 
     /**
@@ -43,7 +54,11 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     public function availableNotificationChannelsFor(string $notificationType, object $notifiable): array
     {
-        return config('notifications.available_channels', []);
+        if (($notificationChannels = $this->config->get("notifications.types.$notificationType.available_channels")) !== null) {
+            return $notificationChannels;
+        }
+
+        return $this->config->get('notifications.available_channels', []);
     }
 
     /**
@@ -51,6 +66,10 @@ class NotificationCatalogConfigProvider implements NotificationCatalog
      */
     public function requiredNotificationChannelsFor(string $notificationType, object $notifiable): array
     {
-        return config('notifications.required_channels', []);
+        if (($notificationChannels = $this->config->get("notifications.types.$notificationType.required_channels")) !== null) {
+            return $notificationChannels;
+        }
+
+        return $this->config->get('notifications.required_channels', []);
     }
 }

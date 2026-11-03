@@ -10,7 +10,9 @@ interface NotificationCatalog
      * Each type exposes its own label and category, so callers can group the
      * returned types by category without a second lookup.
      *
-     * @return array<string, array{label: string, category: string}>
+     * The available_channels and required_channels keys are optional and can be used to override the global available and required channels for a specific notification type.
+     *
+     * @return array<string, array{label: string, category: string, available_channels?: list<string>, required_channels?: list<string>}> The list of notification types with their labels and categories.
      */
     public function notificationTypes(): array;
 
