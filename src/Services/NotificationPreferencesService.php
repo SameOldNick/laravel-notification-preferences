@@ -46,8 +46,8 @@ class NotificationPreferencesService
                 $notificationTypes[$key] = [
                     'enabled' => $notificationPreferences[$key] ?? true, // Default to true if no preference is set
                     'key' => $type,
-                    'label' => $notificationType['label'],
-                    'category' => $notificationType['category'],
+                    'label' => __($notificationType['label']),
+                    'category' => __($notificationType['category']),
                     'channel' => $channel,
                 ];
             }

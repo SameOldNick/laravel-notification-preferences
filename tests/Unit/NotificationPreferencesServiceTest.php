@@ -3,6 +3,7 @@
 namespace SameOldNick\NotificationPreferences\Tests\Unit;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Lang;
 use InvalidArgumentException;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Models\NotifiableNotificationPreference;
@@ -48,6 +49,70 @@ class NotificationPreferencesServiceTest extends TestCase
             'category' => 'Security',
             'channel' => 'mail',
         ], $preferences['mail:login']);
+    }
+
+    public function test_get_preferences_translates_labels_and_categories_using_translation_keys(): void
+    {
+        Lang::addLines([
+            'messages.notifications.login.label' => 'Sign In',
+            'messages.notifications.login.category' => 'Account Security',
+        ], 'en');
+
+        $types = [
+            'login' => [
+                'label' => 'messages.notifications.login.label',
+                'category' => 'messages.notifications.login.category',
+            ],
+        ];
+
+        $preferences = $this->service(['mail', 'ntfy'], $types)->getPreferencesForNotifiable($this->createNotifiable());
+
+        foreach (['mail:login', 'ntfy:login'] as $key) {
+            $this->assertSame('Sign In', $preferences[$key]['label']);
+            $this->assertSame('Account Security', $preferences[$key]['category']);
+        }
+    }
+
+    public function test_get_preferences_translates_labels_and_categories_for_the_active_locale(): void
+    {
+        Lang::addLines([
+            'messages.notifications.login.label' => 'Sign In',
+            'messages.notifications.login.category' => 'Account Security',
+        ], 'en');
+
+        Lang::addLines([
+            'messages.notifications.login.label' => 'Se connecter',
+            'messages.notifications.login.category' => 'Sécurité du compte',
+        ], 'fr');
+
+        $types = [
+            'login' => [
+                'label' => 'messages.notifications.login.label',
+                'category' => 'messages.notifications.login.category',
+            ],
+        ];
+
+        $this->app->setLocale('fr');
+
+        $preferences = $this->service(['mail'], $types)->getPreferencesForNotifiable($this->createNotifiable());
+
+        $this->assertSame('Se connecter', $preferences['mail:login']['label']);
+        $this->assertSame('Sécurité du compte', $preferences['mail:login']['category']);
+    }
+
+    public function test_get_preferences_falls_back_to_the_configured_label_and_category_when_no_translation_exists(): void
+    {
+        $types = [
+            'login' => ['label' => 'Login', 'category' => 'Security'],
+            'backup_failed' => ['label' => 'messages.notifications.backup_failed.label', 'category' => 'messages.notifications.backup_failed.category'],
+        ];
+
+        $preferences = $this->service(['mail'], $types)->getPreferencesForNotifiable($this->createNotifiable());
+
+        $this->assertSame('Login', $preferences['mail:login']['label']);
+        $this->assertSame('Security', $preferences['mail:login']['category']);
+        $this->assertSame('messages.notifications.backup_failed.label', $preferences['mail:backup_failed']['label']);
+        $this->assertSame('messages.notifications.backup_failed.category', $preferences['mail:backup_failed']['category']);
     }
 
     public function test_get_preferences_defaults_missing_preferences_to_enabled(): void

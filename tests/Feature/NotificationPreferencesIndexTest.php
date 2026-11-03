@@ -2,6 +2,7 @@
 
 namespace SameOldNick\NotificationPreferences\Tests\Feature;
 
+use Illuminate\Support\Facades\Lang;
 use SameOldNick\NotificationPreferences\Models\NotifiableNotificationPreference;
 use SameOldNick\NotificationPreferences\Tests\TestCase;
 
@@ -254,6 +255,39 @@ class NotificationPreferencesIndexTest extends TestCase
             ->getJson(route('notification-preferences.index'))
             ->assertOk()
             ->assertExactJson([]);
+    }
+
+    public function test_index_translates_type_labels_and_categories_from_translation_keys(): void
+    {
+        Lang::addLines([
+            'messages.notifications.login.label' => 'Sign In',
+            'messages.notifications.login.category' => 'Account Security',
+        ], 'en');
+
+        config([
+            'notifications.types' => [
+                'login' => [
+                    'label' => 'messages.notifications.login.label',
+                    'category' => 'messages.notifications.login.category',
+                ],
+            ],
+            'notifications.available_channels' => ['mail'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->actingAs($notifiable)
+            ->getJson(route('notification-preferences.index'))
+            ->assertOk()
+            ->assertExactJson([
+                'mail:login' => [
+                    'enabled' => true,
+                    'key' => 'login',
+                    'label' => 'Sign In',
+                    'category' => 'Account Security',
+                    'channel' => 'mail',
+                ],
+            ]);
     }
 
     public function test_index_reads_the_type_and_channel_providers_at_request_time(): void
