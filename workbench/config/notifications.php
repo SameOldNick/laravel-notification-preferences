@@ -40,17 +40,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Notification Channels
+    | Required Notification Channels
     |--------------------------------------------------------------------------
     |
-    | This array defines the default notification channels that will be used
-    | when sending notifications. These channels will be used if the user has not
-    | specified their own preferences. You can modify this array to change the
-    | default channels for notifications.
+    | This array defines the required notification channels that will be used
+    | when sending notifications. These channels will be used no matter what the user's
+    | preferences are. You can modify this array to change the default channels for notifications.
     |
     */
-    'default_channels' => [
-        'app',
+    'required_channels' => [
+        'database',
     ],
 
     /*

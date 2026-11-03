@@ -143,17 +143,17 @@ class NotificationChannelResolverTest extends TestCase
         );
     }
 
-    public function test_with_defaults_appends_default_channels(): void
+    public function test_with_defaults_appends_required_channels(): void
     {
         $notifiable = $this->createNotifiable();
 
         $this->assertSame(
-            ['mail', 'ntfy', 'app'],
-            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail', 'ntfy'], ['app']),
+            ['mail', 'ntfy', 'database'],
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail', 'ntfy'], ['database']),
         );
     }
 
-    public function test_with_defaults_does_not_duplicate_a_default_channel(): void
+    public function test_with_defaults_does_not_duplicate_a_required_channel(): void
     {
         $notifiable = $this->createNotifiable();
 
@@ -163,42 +163,42 @@ class NotificationChannelResolverTest extends TestCase
         );
     }
 
-    public function test_with_defaults_keeps_a_default_channel_even_when_it_is_disabled(): void
+    public function test_with_defaults_keeps_a_required_channel_even_when_it_is_disabled(): void
     {
         $notifiable = $this->createNotifiable();
-        $this->createPreference($notifiable, 'login', 'app', false);
+        $this->createPreference($notifiable, 'login', 'database', false);
 
         $this->assertSame(
-            ['mail', 'app'],
-            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail', 'app'], ['app']),
+            ['mail', 'database'],
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail', 'database'], ['database']),
         );
     }
 
-    public function test_with_defaults_returns_defaults_when_no_channels_are_available(): void
-    {
-        $notifiable = $this->createNotifiable();
-
-        $this->assertSame(
-            ['app'],
-            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', [], ['app']),
-        );
-    }
-
-    public function test_with_defaults_returns_available_and_default_channels_when_the_notifiable_has_no_preferences_support(): void
-    {
-        $this->assertSame(
-            ['mail', 'app'],
-            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels(new stdClass, 'login', ['mail'], ['app']),
-        );
-    }
-
-    public function test_with_defaults_deduplicates_repeated_default_channels(): void
+    public function test_with_defaults_returns_required_channels_when_no_channels_are_available(): void
     {
         $notifiable = $this->createNotifiable();
 
         $this->assertSame(
-            ['mail', 'app'],
-            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail'], ['app', 'app']),
+            ['database'],
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', [], ['database']),
+        );
+    }
+
+    public function test_with_defaults_returns_available_and_required_channels_when_the_notifiable_has_no_preferences_support(): void
+    {
+        $this->assertSame(
+            ['mail', 'database'],
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels(new stdClass, 'login', ['mail'], ['database']),
+        );
+    }
+
+    public function test_with_defaults_deduplicates_repeated_required_channels(): void
+    {
+        $notifiable = $this->createNotifiable();
+
+        $this->assertSame(
+            ['mail', 'database'],
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail'], ['database', 'database']),
         );
     }
 
