@@ -26,8 +26,6 @@ class NotificationTest extends TestCase
         Notification::assertSentTo(
             $notifiable,
             function (TestNotification $notification, array $channels) {
-                dd($channels);
-
                 return $channels === ['mail'];
             },
         );
