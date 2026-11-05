@@ -2,6 +2,7 @@
 
 [![codecov](https://codecov.io/gh/SameOldNick/laravel-notification-preferences/graph/badge.svg?token=eL1FDSZ9T8)](https://codecov.io/gh/SameOldNick/laravel-notification-preferences)
 [![Tests](https://github.com/SameOldNick/laravel-notification-preferences/actions/workflows/tests.yml/badge.svg)](https://github.com/SameOldNick/laravel-notification-preferences/actions/workflows/tests.yml)
+![Packagist Downloads](https://img.shields.io/packagist/dt/SameOldNick/laravel-notification-preferences)
 
 Let users choose which channels each type of notification is delivered through, while guaranteeing that important notifications always reach them.
 
