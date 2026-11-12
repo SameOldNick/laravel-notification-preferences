@@ -1,6 +1,6 @@
 ---
 name: notification-preferences-development
-description: 'ACTIVATE when the user works with per-type notification channel preferences in a Laravel app: configuring notification-preferences.channels, notification-preferences.available_channels, notification-preferences.required_channels, or notification-preferences.types; adding the HasNotificationPreferences or RoutesViaNotifiablePreferences traits; overriding notificationType(); or building endpoints that read or update preferences with NotificationPreferencesService or NotificationCatalog. Activate when the user mentions notification preferences, opting out of channels, required channels, or this package. Do NOT activate for general Laravel notification sending, mail configuration, or queueing that does not involve per-type channel preferences.'
+description: 'ACTIVATE when the user works with per-type notification channel preferences in a Laravel app: configuring notification-preferences.channels, notification-preferences.available_channels, notification-preferences.required_channels, or notification-preferences.types; adding the HasNotificationPreferences or RoutesViaNotifiablePreferences traits; overriding notificationType(); building endpoints that read or update preferences with NotificationPreferencesService or NotificationCatalog; or upgrading this package (for example 1.0.x to 1.1.0) and reconciling its configuration. Activate when the user mentions notification preferences, opting out of channels, required channels, upgrading sameoldnick/laravel-notification-preferences, or this package. Do NOT activate for general Laravel notification sending, mail configuration, or queueing that does not involve per-type channel preferences.'
 license: MIT
 metadata:
   author: SameOldNick
@@ -18,7 +18,7 @@ This package stores per-notifiable, per-type, per-channel preferences in the `no
 
 ## When to use this skill
 
-Use it when adding, configuring, or debugging notification preferences, or when building the UI/API that reads and updates them.
+Use it when adding, configuring, or debugging notification preferences, when building the UI/API that reads and updates them, or when upgrading the package and reconciling its configuration.
 
 ## Package map
 
@@ -287,6 +287,20 @@ $this->app->singleton(NotificationCatalog::class, DatabaseNotificationCatalog::c
 - The per-notifiable methods receive the notifiable, so availability can depend on a plan, tenant, or other user state. Guard channels by filtering `availableNotificationChannelsFor()`; required channels are appended even when unavailable.
 - The catalog is a singleton. Do not store notifiable state on the instance; compute per call or memoize keyed by the notifiable.
 - `getPreferencesForNotifiable()` only uses the type list and `availableNotificationChannelsFor()`. Required channels affect delivery, not the returned preference list.
+
+## Upgrading an application
+
+Upgrading from 1.0.x to 1.1.0 needs no database changes. Work through these checks before changing code:
+
+1. Confirm the installed version with `composer show sameoldnick/laravel-notification-preferences`.
+2. Never run `vendor:publish --force` for `notification-preferences-config`. It replaces the application's customized `channels` and `types`, and the 1.1.0 file ships `ntfy` as opt-in (`enabled_by_default => false`). Merge new keys by hand instead.
+3. Add the new keys only where the application needs them: `channels.*.enabled_by_default`, `types.*.default_channels`, and `guard`. Omitting them keeps the previous behaviour; `guard` is `null` by default.
+4. Check that every value of `available_channels` (global and per type) is a key of `channels`. Unregistered channels now throw `InvalidArgumentException` when the catalog resolves that list. Add the channel to `channels` with a `label`, remove it from `available_channels`, or delete `available_channels` entirely to offer every registered channel.
+5. Make sure callers of `updatePreferencesForNotifiable()` validate the payload first or catch `InvalidArgumentException`, which is now thrown for unavailable types and channels before anything is written.
+6. Leave custom `NotificationCatalog` bindings alone: the interface is unchanged. Implement `NotificationCatalogForNotifiable`, `NotificationChannelDefaults`, or `NotificationTypeGuard` only to opt in.
+7. Run the application's tests. A channel marked opt-in no longer reaches notifiables without a stored preference, so preference and delivery tests are the ones most likely to need attention.
+
+Required channels are unaffected by steps 3 and 4, because they are never offered to notifiables.
 
 ## Testing
 

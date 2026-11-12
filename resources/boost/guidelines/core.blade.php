@@ -43,5 +43,6 @@ Configuration lives in `config/notification-preferences.php` and is read through
 - `NotificationCatalog` is bound to `NotificationCatalogConfigProvider`. Bind a custom implementation when types or channels come from a database, tenant, or plan; routing and preference services both resolve the interface, so one binding changes both. Keep the singleton stateless.
 - Use `SameOldNick\NotificationPreferences\Services\NotificationPreferencesService` to read and write preferences. The package ships no routes, controllers, or views, so the application must expose and validate its own endpoints.
 - Validate incoming types and channels before updating. The service rejects unavailable types and channels with `InvalidArgumentException`, and `getNotificationTypesForNotifiable()` returns the guarded type list to validate against.
+- When upgrading the package (for example 1.0.x to 1.1.0), merge configuration keys by hand instead of force-publishing the config, and confirm every `available_channels` value is registered in `channels`. The `notification-preferences-development` skill and the README's Upgrading section hold the full checklist.
 
 For detailed workflows, use the `notification-preferences-development` Boost skill.

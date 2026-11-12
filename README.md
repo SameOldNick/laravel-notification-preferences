@@ -374,6 +374,26 @@ public function availableNotificationChannelsFor(string $notificationType, objec
 
 Required channels are appended even when they are not available, so guard them too if they must never be delivered.
 
+## Upgrading
+
+### From 1.0.x to 1.1.0
+
+This release adds channel defaults and type guards, and makes `available_channels` optional. No database changes are required.
+
+1. **Merge the new configuration keys.** The published file now documents `channels.*.enabled_by_default`, `types.*.default_channels`, and `guard`. Existing published configs keep working unchanged: an omitted `enabled_by_default` still means enabled, and an omitted `guard` leaves every type unguarded. Updating the package alone does not alter your channels — your published config wins.
+
+   If you adopt the new `channels` array, note that it ships `ntfy` as opt-in (`enabled_by_default => false`). Notifiables without a stored `ntfy` preference will stop receiving it; set the flag to `true` to keep the previous behaviour.
+
+2. **Check `available_channels` against `channels`.** The key is now optional: when omitted, every channel registered in `channels` is offered, so you can delete the list entirely. If you keep it (globally or on a type), every value must be a key of `channels`; an unregistered channel now throws an `InvalidArgumentException` as soon as the catalog resolves that list, such as when building the preferences payload or sending a notification. Add the missing channels to `channels` with a `label`, or drop them from `available_channels`. Required channels are unaffected, since they are never offered.
+
+3. **Validate preference updates.** `updatePreferencesForNotifiable()` now rejects types and channels that are not available to the notifiable with an `InvalidArgumentException`, before writing anything. Validate the payload with `getNotificationTypesForNotifiable()` and `NotificationCatalog::availableNotificationChannelsFor()` first, or catch the exception and map it to a `422` response. A submitted type may now also omit `channels`, which writes nothing for that type.
+
+4. **Audit channels you mark opt-in.** Both the preferences list and delivery now consult `enabled_by_default` and `default_channels` when a notifiable has no stored preference. A channel marked opt-in stops being delivered to existing users who never saved a preference for it. Channels without the flag keep the previous enabled behaviour, and required channels ignore defaults.
+
+5. **Resolve `NotificationChannelResolver` from the container.** Its constructor now requires a `NotificationCatalog`. `RoutesViaNotifiablePreferences` already resolves it with `app()`, so only code that instantiates the resolver directly must pass the catalog.
+
+6. **Adopt the new extension points only if needed.** `NotificationCatalogForNotifiable`, `NotificationChannelDefaults`, `NotificationTypeGuard`, and the `NotificationType` attribute are additive; the `NotificationCatalog` interface itself is unchanged, so existing custom catalogs keep working. Configuring `guard` hides rejected types from the preferences list and from updates, but does not stop your application from sending them.
+
 ## Laravel Boost
 
 This package ships AI guidelines and an on-demand agent skill for [Laravel Boost](https://laravel.com/docs/boost):
@@ -381,7 +401,7 @@ This package ships AI guidelines and an on-demand agent skill for [Laravel Boost
 - Guidelines: `resources/boost/guidelines/core.blade.php`
 - Skill: `resources/boost/skills/notification-preferences-development/SKILL.md`
 
-Both are installed automatically when an application runs `php artisan boost:install` (skills depend on the user selecting the skills feature).
+Both are installed automatically when an application runs `php artisan boost:install` (skills depend on the user selecting the skills feature). The skill also carries the upgrade checklist, so an assistant can reconcile configuration when the package version changes.
 
 ## Development
 
