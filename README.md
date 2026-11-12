@@ -102,7 +102,7 @@ return [
 
 ### Notification types
 
-Each notification type is keyed by the value returned from its `notificationType()` method and defines a label and a category. Both may be translation keys.
+Each notification type is keyed by the value returned from its `notificationType()` method (or from its `NotificationType` attribute) and defines a label and a category. Both may be translation keys.
 
 ```php
 'types' => [
@@ -214,16 +214,64 @@ The trait provides `via()`. Do not also define `via()` on the notification, or i
 
 ### Mapping a notification to a type
 
-By default, `notificationType()` returns the notification's fully-qualified class name, which must exist as a key in `notification-preferences.types`. To use a shorter key instead, override the method:
+By default, `notificationType()` returns the notification's fully-qualified class name, which must exist as a key in `notification-preferences.types`. To use a shorter key instead, apply the `NotificationType` attribute to the class:
 
 ```php
-public function notificationType(): string
+<?php
+
+namespace App\Notifications;
+
+use Illuminate\Notifications\Notification;
+use SameOldNick\NotificationPreferences\Attributes\NotificationType;
+use SameOldNick\NotificationPreferences\Concerns\RoutesViaNotifiablePreferences;
+
+#[NotificationType('my-notification')]
+class MyNotification extends Notification
 {
-    return 'my-notification';
+    use RoutesViaNotifiablePreferences;
+
+    public function toArray($notifiable): array
+    {
+        return ['message' => 'Hello!'];
+    }
 }
 ```
 
-The returned value must match a key in `notification-preferences.types`.
+The `my-notification` key matches the type defined in the [Notification types](#notification-types) section, so the notifiable's preferences for that type decide which channels this notification uses.
+
+The attribute also accepts a backed enum, so one enum can own your type keys:
+
+```php
+// app/Enums/NotificationType.php
+enum NotificationType: string
+{
+    case Login = 'login';
+    case BackupFailed = 'backup_failed';
+}
+```
+
+```php
+<?php
+
+namespace App\Notifications;
+
+use App\Enums\NotificationType;
+use Illuminate\Notifications\Notification;
+use SameOldNick\NotificationPreferences\Attributes\NotificationType as NotificationTypeAttribute;
+use SameOldNick\NotificationPreferences\Concerns\RoutesViaNotifiablePreferences;
+
+#[NotificationTypeAttribute(NotificationType::Login)]
+class LoginNotification extends Notification
+{
+    use RoutesViaNotifiablePreferences;
+}
+```
+
+The enum case resolves to its backing value, so `NotificationType::Login` maps to the `login` type. Alias one of the two imports because both classes are named `NotificationType`.
+
+The resolved value must match a key in `notification-preferences.types`.
+
+Resolution order is the notification's own `notificationType()` method, then the attribute, then the class name, so overriding the method still wins. Attributes are not inherited, so place it on the concrete notification class rather than a base class.
 
 ### Reading and updating preferences
 

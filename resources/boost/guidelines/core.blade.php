@@ -35,7 +35,7 @@ Configuration lives in `config/notification-preferences.php` and is read through
 
 ### Conventions
 
-- `notificationType()` defaults to the notification's fully-qualified class name. When overriding it, return a key that exists in `notification-preferences.types`; otherwise users cannot manage that notification.
+- `notificationType()` defaults to the notification's fully-qualified class name. Apply the `NotificationType` attribute (a string or backed enum) or override `notificationType()` to use a key that exists in `notification-preferences.types`; otherwise users cannot manage that notification. An explicit method takes precedence over the attribute, and attributes are not inherited.
 - Do not also define `via()` on a notification that uses `RoutesViaNotifiablePreferences`. The class method takes precedence and bypasses preference routing.
 - A channel with no stored preference is treated as enabled, so newly added channels reach existing users.
 - Use `SameOldNick\NotificationPreferences\Contracts\NotificationCatalog` to list notification types and channels, and to resolve the channels available to a specific type.

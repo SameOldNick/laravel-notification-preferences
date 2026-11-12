@@ -3,7 +3,11 @@
 namespace SameOldNick\NotificationPreferences\Tests\Feature;
 
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Notifications\Notification as BaseNotification;
 use Illuminate\Support\Facades\Notification;
+use SameOldNick\NotificationPreferences\Attributes\NotificationType as NotificationTypeAttribute;
+use SameOldNick\NotificationPreferences\Concerns\RoutesViaNotifiablePreferences;
+use SameOldNick\NotificationPreferences\Tests\Fixtures\NotificationType;
 use SameOldNick\NotificationPreferences\Tests\Fixtures\TestNotification;
 use SameOldNick\NotificationPreferences\Tests\TestCase;
 use stdClass;
@@ -61,6 +65,54 @@ class NotificationTest extends TestCase
     public function test_notification_type_falls_back_to_the_notification_class_name_when_empty(): void
     {
         $this->assertSame(TestNotification::class, (new TestNotification([], ''))->notificationType());
+    }
+
+    public function test_notification_type_uses_the_notification_type_attribute(): void
+    {
+        $notification = new #[NotificationTypeAttribute('login')] class extends BaseNotification
+        {
+            use RoutesViaNotifiablePreferences;
+        };
+
+        $this->assertSame('login', $notification->notificationType());
+    }
+
+    public function test_notification_type_uses_the_backing_value_of_an_enum_attribute(): void
+    {
+        $notification = new #[NotificationTypeAttribute(NotificationType::BackupFailed)] class extends BaseNotification
+        {
+            use RoutesViaNotifiablePreferences;
+        };
+
+        $this->assertSame('backup_failed', $notification->notificationType());
+    }
+
+    public function test_notification_type_method_takes_precedence_over_the_attribute(): void
+    {
+        $notification = new #[NotificationTypeAttribute('login')] class extends BaseNotification
+        {
+            use RoutesViaNotifiablePreferences;
+
+            public function notificationType(): string
+            {
+                return 'backup_failed';
+            }
+        };
+
+        $this->assertSame('backup_failed', $notification->notificationType());
+    }
+
+    public function test_via_uses_the_notification_type_attribute_to_resolve_preferences(): void
+    {
+        $notifiable = $this->createNotifiable();
+        $this->createPreference($notifiable, 'login', 'mail', false);
+
+        $notification = new #[NotificationTypeAttribute('login')] class extends BaseNotification
+        {
+            use RoutesViaNotifiablePreferences;
+        };
+
+        $this->assertSame(['ntfy'], $notification->via($notifiable));
     }
 
     public function test_via_returns_no_channels_without_a_notifiable(): void

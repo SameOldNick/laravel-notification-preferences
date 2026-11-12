@@ -147,22 +147,19 @@ class NotificationGuard implements NotificationTypeGuard
 namespace App\Notifications;
 
 use Illuminate\Notifications\Notification;
+use SameOldNick\NotificationPreferences\Attributes\NotificationType;
 use SameOldNick\NotificationPreferences\Concerns\RoutesViaNotifiablePreferences;
 
+#[NotificationType('security-alert')]
 class SecurityAlert extends Notification
 {
     use RoutesViaNotifiablePreferences;
-
-    public function notificationType(): string
-    {
-        return 'security-alert';
-    }
 
     // ...
 }
 ```
 
-- `notificationType()` defaults to the notification's fully-qualified class name.
+- `notificationType()` defaults to the notification's fully-qualified class name. Apply the `NotificationType` attribute, or override `notificationType()`, to use a shorter key from `notification-preferences.types`. The method takes precedence over the attribute, and attributes are not inherited.
 - Do not also define `via()`. A method on the class takes precedence over the trait and bypasses preference resolution.
 - Anonymous notifiables receive the available channels but never the required channels.
 

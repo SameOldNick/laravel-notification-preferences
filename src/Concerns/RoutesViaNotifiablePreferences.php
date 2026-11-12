@@ -3,8 +3,13 @@
 namespace SameOldNick\NotificationPreferences\Concerns;
 
 use Illuminate\Notifications\AnonymousNotifiable;
+use ReflectionAttribute;
+use ReflectionClass;
+use SameOldNick\NotificationPreferences\Attributes\NotificationType;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Services\NotificationChannelResolver;
+
+use function Illuminate\Support\enum_value;
 
 trait RoutesViaNotifiablePreferences
 {
@@ -13,11 +18,12 @@ trait RoutesViaNotifiablePreferences
      *
      * This is used to look up the user's preferences for this notification.
      * This should correspond to a key in the notification types configuration.
-     * By default, this will return the class name of the notification, but can be overridden in the notification class if needed.
+     * The type comes from the NotificationType attribute when present, and otherwise
+     * from the class name. Overriding this method in the notification takes precedence.
      */
     public function notificationType(): string
     {
-        return get_class($this);
+        return $this->getNotificationTypeFromAttribute() ?? $this->getNotificationTypeFromClassName();
     }
 
     /**
@@ -57,5 +63,30 @@ trait RoutesViaNotifiablePreferences
         return ! $notifiable instanceof AnonymousNotifiable ?
             app(NotificationCatalog::class)->requiredNotificationChannelsFor($this->notificationType(), $notifiable) :
             [];
+    }
+
+    /**
+     * Get the notification type from the NotificationType attribute, if present.
+     *
+     * @return string|null The notification type, or null if not present.
+     */
+    protected function getNotificationTypeFromAttribute(): ?string
+    {
+        $reflection = new ReflectionClass($this);
+
+        /** @var ReflectionAttribute<NotificationType>|null */
+        $attribute = $reflection->getAttributes(NotificationType::class)[0] ?? null;
+
+        return $attribute ? enum_value($attribute->newInstance()->type) : null;
+    }
+
+    /**
+     * Get the notification type from the class name.
+     *
+     * @return string The notification type.
+     */
+    protected function getNotificationTypeFromClassName(): string
+    {
+        return get_class($this);
     }
 }
