@@ -5,6 +5,7 @@ namespace SameOldNick\NotificationPreferences\Tests\Unit;
 use InvalidArgumentException;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalogForNotifiable;
+use SameOldNick\NotificationPreferences\Contracts\NotificationChannelDefaults;
 use SameOldNick\NotificationPreferences\Contracts\NotificationTypeGuard;
 use SameOldNick\NotificationPreferences\Tests\Fixtures\ConfigDrivenGuard;
 use SameOldNick\NotificationPreferences\Tests\Fixtures\NotifiablePropertyGuard;
@@ -309,9 +310,90 @@ class NotificationCatalogConfigProviderTest extends TestCase
         $this->guardedCatalog()->notificationTypesFor(new stdClass);
     }
 
+    public function test_channel_enabled_by_default_returns_the_channel_setting(): void
+    {
+        config([
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email', 'enabled_by_default' => false],
+            ],
+        ]);
+
+        $this->assertFalse($this->defaults()->channelEnabledByDefault('login', 'mail', new stdClass));
+    }
+
+    public function test_channel_enabled_by_default_defaults_to_enabled_when_unconfigured(): void
+    {
+        config([
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email'],
+            ],
+        ]);
+
+        $this->assertTrue($this->defaults()->channelEnabledByDefault('login', 'mail', new stdClass));
+    }
+
+    public function test_channel_enabled_by_default_prefers_the_type_default_channels(): void
+    {
+        config([
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email', 'enabled_by_default' => false],
+                'ntfy' => ['label' => 'Ntfy', 'enabled_by_default' => false],
+            ],
+            'notification-preferences.types.login.default_channels' => ['mail'],
+        ]);
+
+        $this->assertTrue($this->defaults()->channelEnabledByDefault('login', 'mail', new stdClass));
+        $this->assertFalse($this->defaults()->channelEnabledByDefault('login', 'ntfy', new stdClass));
+    }
+
+    public function test_channel_enabled_by_default_disables_every_channel_when_the_type_defaults_are_empty(): void
+    {
+        config([
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email', 'enabled_by_default' => true],
+            ],
+            'notification-preferences.types.login.default_channels' => [],
+        ]);
+
+        $this->assertFalse($this->defaults()->channelEnabledByDefault('login', 'mail', new stdClass));
+    }
+
+    public function test_channel_enabled_by_default_throws_when_the_channel_value_is_not_a_boolean(): void
+    {
+        config([
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email', 'enabled_by_default' => 'false'],
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The [notification-preferences.channels.mail.enabled_by_default] configuration value must be a boolean or null, string given.');
+
+        $this->defaults()->channelEnabledByDefault('login', 'mail', new stdClass);
+    }
+
+    public function test_channel_enabled_by_default_throws_when_the_type_value_is_not_an_array(): void
+    {
+        config(['notification-preferences.types.login.default_channels' => 'mail']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The [notification-preferences.types.login.default_channels] configuration value must be an array or null, string given.');
+
+        $this->defaults()->channelEnabledByDefault('login', 'mail', new stdClass);
+    }
+
     private function catalog(): NotificationCatalog
     {
         return $this->app->make(NotificationCatalog::class);
+    }
+
+    private function defaults(): NotificationChannelDefaults
+    {
+        $catalog = $this->catalog();
+
+        $this->assertInstanceOf(NotificationChannelDefaults::class, $catalog);
+
+        return $catalog;
     }
 
     private function guardedCatalog(): NotificationCatalogForNotifiable

@@ -12,14 +12,21 @@ return [
     | preferences. You can define channels, notification types, and other
     | settings that will be used throughout the application.
     |
+    | The enabled_by_default value for each channel determines whether the channel
+    | is enabled when a notifiable has no stored preference for it. It is used
+    | both for the preferences list and for delivery. If omitted, the channel is
+    | enabled by default. Required channels always deliver regardless of defaults.
+    |
     */
 
     'channels' => [
         'mail' => [
             'label' => 'Email',
+            'enabled_by_default' => true,
         ],
         'ntfy' => [
             'label' => 'Ntfy',
+            'enabled_by_default' => false,
         ],
     ],
 

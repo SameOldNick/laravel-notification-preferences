@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Lang;
 use InvalidArgumentException;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalogForNotifiable;
+use SameOldNick\NotificationPreferences\Contracts\NotificationChannelDefaults;
 use SameOldNick\NotificationPreferences\Models\NotifiableNotificationPreference;
 use SameOldNick\NotificationPreferences\Services\NotificationPreferencesService;
 use SameOldNick\NotificationPreferences\Tests\Fixtures\Channel;
@@ -137,6 +138,22 @@ class NotificationPreferencesServiceTest extends TestCase
         $this->assertIsBool($preferences['mail:login']['enabled']);
         $this->assertFalse($preferences['mail:login']['enabled']);
         $this->assertTrue($preferences['ntfy:login']['enabled']);
+    }
+
+    public function test_get_preferences_uses_the_channel_defaults_from_the_catalog(): void
+    {
+        $catalog = $this->mock(NotificationCatalog::class.', '.NotificationChannelDefaults::class);
+        $catalog->allows('notificationTypes')->andReturn(self::TYPES);
+        $catalog->allows('availableNotificationChannelsFor')->andReturn(['mail', 'ntfy']);
+        $catalog->allows('channelEnabledByDefault')->andReturnUsing(
+            fn (string $notificationType, string $channel): bool => $channel === 'mail',
+        );
+
+        $preferences = (new NotificationPreferencesService($catalog))
+            ->getPreferencesForNotifiable($this->createNotifiable());
+
+        $this->assertTrue($preferences['mail:login']['enabled']);
+        $this->assertFalse($preferences['ntfy:login']['enabled']);
     }
 
     public function test_get_preferences_applies_a_stored_enabled_preference(): void

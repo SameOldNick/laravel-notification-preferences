@@ -24,6 +24,10 @@ class NotificationTest extends TestCase
                 'login' => ['label' => 'Login', 'category' => 'Security'],
                 'backup_failed' => ['label' => 'Backup Failed', 'category' => 'Backups'],
             ],
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email', 'enabled_by_default' => true],
+                'ntfy' => ['label' => 'Ntfy', 'enabled_by_default' => true],
+            ],
             'notification-preferences.available_channels' => ['mail', 'ntfy'],
             'notification-preferences.required_channels' => [],
         ]);

@@ -19,8 +19,25 @@ class NotificationPreferencesIndexTest extends TestCase
                 'password_change' => ['label' => 'Password Change', 'category' => 'Security'],
                 'backup_failed' => ['label' => 'Backup Failed', 'category' => 'Backups'],
             ],
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email', 'enabled_by_default' => true],
+                'ntfy' => ['label' => 'Ntfy', 'enabled_by_default' => true],
+            ],
             'notification-preferences.available_channels' => ['mail', 'ntfy'],
         ]);
+    }
+
+    public function test_index_marks_a_channel_that_is_disabled_by_default_as_disabled(): void
+    {
+        config(['notification-preferences.channels.ntfy.enabled_by_default' => false]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->actingAs($notifiable)
+            ->getJson(route('notification-preferences.index'))
+            ->assertOk()
+            ->assertJsonPath('mail:login.enabled', true)
+            ->assertJsonPath('ntfy:login.enabled', false);
     }
 
     public function test_index_requires_an_authenticated_notifiable(): void

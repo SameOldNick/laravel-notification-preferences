@@ -2,12 +2,26 @@
 
 namespace SameOldNick\NotificationPreferences\Tests\Unit;
 
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Services\NotificationChannelResolver;
 use SameOldNick\NotificationPreferences\Tests\TestCase;
 use stdClass;
 
 class NotificationChannelResolverTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email', 'enabled_by_default' => true],
+                'ntfy' => ['label' => 'Ntfy', 'enabled_by_default' => true],
+                'database' => ['label' => 'Database', 'enabled_by_default' => true],
+            ],
+        ]);
+    }
+
     public function test_returns_no_channels_when_the_notifiable_is_null(): void
     {
         $this->assertSame([], $this->resolver()->viaNotifiablePreferences(null, 'login', ['mail', 'ntfy']));
@@ -202,8 +216,70 @@ class NotificationChannelResolverTest extends TestCase
         );
     }
 
+    public function test_drops_a_channel_that_is_disabled_by_default_when_no_preference_is_stored(): void
+    {
+        config(['notification-preferences.channels.ntfy.enabled_by_default' => false]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->assertSame(
+            ['mail'],
+            $this->resolver()->viaNotifiablePreferences($notifiable, 'login', ['mail', 'ntfy']),
+        );
+    }
+
+    public function test_keeps_a_channel_that_is_disabled_by_default_when_the_notifiable_enabled_it(): void
+    {
+        config(['notification-preferences.channels.ntfy.enabled_by_default' => false]);
+
+        $notifiable = $this->createNotifiable();
+        $this->createPreference($notifiable, 'login', 'ntfy', true);
+
+        $this->assertSame(
+            ['mail', 'ntfy'],
+            $this->resolver()->viaNotifiablePreferences($notifiable, 'login', ['mail', 'ntfy']),
+        );
+    }
+
+    public function test_type_default_channels_override_the_channel_default(): void
+    {
+        config([
+            'notification-preferences.types.login.default_channels' => ['mail'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->assertSame(
+            ['mail'],
+            $this->resolver()->viaNotifiablePreferences($notifiable, 'login', ['mail', 'ntfy']),
+        );
+    }
+
+    public function test_with_defaults_appends_a_required_channel_that_is_disabled_by_default(): void
+    {
+        config(['notification-preferences.channels.database.enabled_by_default' => false]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->assertSame(
+            ['mail', 'database'],
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail', 'database'], ['database']),
+        );
+    }
+
+    public function test_treats_channels_as_enabled_when_the_catalog_has_no_defaults(): void
+    {
+        $notifiable = $this->createNotifiable();
+
+        $this->assertSame(
+            ['mail'],
+            (new NotificationChannelResolver($this->mock(NotificationCatalog::class)))
+                ->viaNotifiablePreferences($notifiable, 'login', ['mail']),
+        );
+    }
+
     private function resolver(): NotificationChannelResolver
     {
-        return new NotificationChannelResolver;
+        return $this->app->make(NotificationChannelResolver::class);
     }
 }
