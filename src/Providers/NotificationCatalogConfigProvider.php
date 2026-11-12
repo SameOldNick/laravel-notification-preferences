@@ -60,7 +60,7 @@ class NotificationCatalogConfigProvider implements NotificationCatalogForNotifia
      */
     public function availableNotificationChannels(): array
     {
-        return $this->config->get('notification-preferences.available_channels', []);
+        return $this->globalChannels('available_channels');
     }
 
     /**
@@ -68,7 +68,7 @@ class NotificationCatalogConfigProvider implements NotificationCatalogForNotifia
      */
     public function requiredNotificationChannels(): array
     {
-        return $this->config->get('notification-preferences.required_channels', []);
+        return $this->globalChannels('required_channels');
     }
 
     /**
@@ -139,10 +139,45 @@ class NotificationCatalogConfigProvider implements NotificationCatalogForNotifia
         $channels = $this->config->get($configKey);
 
         if ($channels === null) {
-            $configKey = "notification-preferences.{$key}";
-            $channels = $this->config->get($configKey, []);
+            return $this->globalChannels($key);
         }
 
+        return $this->resolveChannels($configKey, $channels, $key === 'available_channels');
+    }
+
+    /**
+     * Resolve a global channel list.
+     *
+     * The available list defaults to every registered channel when it is not configured,
+     * so the channels map remains the single source of truth for what can be offered.
+     *
+     * @return list<string>
+     */
+    private function globalChannels(string $key): array
+    {
+        $configKey = "notification-preferences.{$key}";
+        $channels = $this->config->get($configKey);
+
+        if ($channels === null) {
+            return $key === 'available_channels'
+                ? array_keys($this->notificationChannels())
+                : [];
+        }
+
+        return $this->resolveChannels($configKey, $channels, $key === 'available_channels');
+    }
+
+    /**
+     * Validate a configured channel list and reindex it.
+     *
+     * Available channels must be registered in the channels map so they have a label and a
+     * default; required channels may name channels the application delivers without offering
+     * them to notifiables, so they are not required to be registered.
+     *
+     * @return list<string>
+     */
+    private function resolveChannels(string $configKey, mixed $channels, bool $mustBeRegistered): array
+    {
         if (! is_array($channels)) {
             throw new InvalidArgumentException(sprintf(
                 'The [%s] configuration value must be an array or null, %s given.',
@@ -151,6 +186,24 @@ class NotificationCatalogConfigProvider implements NotificationCatalogForNotifia
             ));
         }
 
-        return array_values($channels);
+        $channels = array_values($channels);
+
+        if (! $mustBeRegistered) {
+            return $channels;
+        }
+
+        $registered = array_keys($this->notificationChannels());
+
+        foreach ($channels as $channel) {
+            if (! in_array($channel, $registered, true)) {
+                throw new InvalidArgumentException(sprintf(
+                    'The [%s] configuration value contains the channel [%s], which is not defined in the [notification-preferences.channels] configuration.',
+                    $configKey,
+                    is_string($channel) ? $channel : get_debug_type($channel),
+                ));
+            }
+        }
+
+        return $channels;
     }
 }

@@ -57,10 +57,10 @@ The published configuration file is `config/notification-preferences.php`.
 
 ### Channels
 
-Three top-level keys configure channels:
+Three top-level keys configure channels; `available_channels` is optional:
 
-- `channels` — the channels that can be offered, each with a label and an optional `enabled_by_default` flag.
-- `available_channels` — the channels offered to users. Users can enable or disable each one.
+- `channels` — the registry of channels the application can offer, each with a label and an optional `enabled_by_default` flag.
+- `available_channels` — an optional subset of `channels` keys that users can enable or disable. When omitted, every registered channel is offered; an explicit empty array offers none.
 - `required_channels` — the channels that are always sent, regardless of user preferences. Users cannot disable these.
 
 ```php
@@ -82,6 +82,7 @@ return [
         ],
     ],
 
+    // Optional: omit this to offer every channel registered above.
     'available_channels' => [
         'mail',
         'database',
@@ -97,10 +98,11 @@ return [
 - Channel keys must match the channel names your notifications return from `via()`, such as `mail`, `database`, `broadcast`, or a channel class name.
 - Labels may be plain strings or translation keys.
 - `enabled_by_default` sets the state used when the notifiable has no stored preference for that channel. It affects both the preferences list and delivery, and an omitted value means enabled. Required channels ignore it.
-- A required channel does not have to appear in `available_channels`; it is appended to the resolved channels either way.
+- `available_channels` only narrows the registry. Every value must be a key of `channels`; naming an unregistered channel throws an `InvalidArgumentException` when the catalog resolves it. Omit the key to offer everything, or use `[]` to offer nothing.
+- A required channel does not have to appear in `available_channels` or in `channels`; it is appended to the resolved channels either way.
 - The published file contains example values. Replace them with the channels your application actually sends through, and only list required channels your application can deliver.
 
-> **Note:** `channels` provides display metadata (used by `NotificationCatalog::notificationChannels()`) and the per-channel default state. `available_channels` and `required_channels` control which channels are offered and forced.
+> **Note:** `channels` provides display metadata (used by `NotificationCatalog::notificationChannels()`) and the per-channel default state. `available_channels` optionally narrows which of them are offered, and `required_channels` controls which are forced.
 
 ### Notification types
 
@@ -185,7 +187,7 @@ A notification type may override the global channel lists:
 
 When a notification that uses `RoutesViaNotifiablePreferences` is sent, its channels are resolved in this order:
 
-1. Start with the available channels for the notification type.
+1. Start with the available channels for the notification type: its own `available_channels` override, otherwise the global list, otherwise every key in `channels`.
 2. Remove channels the notifiable has disabled, and channels that are disabled by default and have no stored preference.
 3. Append the required channels for the notification type.
 4. Remove duplicates.

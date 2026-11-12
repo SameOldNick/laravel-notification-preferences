@@ -41,7 +41,7 @@ Use it when adding, configuring, or debugging notification preferences, or when 
 - [ ] Require `sameoldnick/laravel-notification-preferences`.
 - [ ] Publish the config and migration with `php artisan vendor:publish --tag=notification-preferences-config` and `php artisan vendor:publish --tag=notification-preferences-migrations`, then run `php artisan migrate`.
 - [ ] Add `HasNotificationPreferences` to the notifiable model (usually `User`).
-- [ ] Add each channel to `notification-preferences.channels` and `notification-preferences.available_channels`.
+- [ ] Add each channel to `notification-preferences.channels`, then narrow `notification-preferences.available_channels` only if some registered channels should not be offered.
 - [ ] Add each notification type to `notification-preferences.types`.
 - [ ] Add `RoutesViaNotifiablePreferences` to each notification and override `notificationType()` when the default FQCN key is not desired.
 
@@ -63,6 +63,7 @@ return [
 
 - `channels` supplies labels for display plus an optional `enabled_by_default` flag that sets the state when no preference row exists.
 - `available_channels` and `required_channels` drive behavior and must contain channel names Laravel can resolve: `mail`, `database`, `broadcast`, `vonage`, or a channel class name.
+- `available_channels` is optional: omit it to offer every channel in `channels`, or set `[]` to offer none. Every value must be a key of `channels`; an unregistered channel throws when the catalog resolves it. Required channels are exempt from that check because they are never offered.
 - Labels may be plain strings or translation keys.
 - A channel with no stored preference is delivered only when it is enabled by default. Required channels are always appended, regardless of defaults.
 - Required channels are appended even when they are not in `available_channels`. Only mark a channel required when the application can deliver through it.
@@ -171,7 +172,7 @@ class SecurityAlert extends Notification
 
 `RoutesViaNotifiablePreferences::via()` calls `NotificationChannelResolver::viaNotifiablePreferencesWithRequiredChannels()`, which:
 
-1. Starts with the available channels for the type.
+1. Starts with the available channels for the type: its own `available_channels`, otherwise the global list, otherwise every key in `channels`.
 2. Removes channels with an explicit disabled preference row, and channels that are disabled by default and have no stored row.
 3. Appends the required channels for the type.
 4. Deduplicates while preserving order.

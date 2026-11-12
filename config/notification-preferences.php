@@ -33,15 +33,17 @@ return [
     | Available Notification Channels
     |--------------------------------------------------------------------------
     |
-    | This array defines the notification channels that are available for use
-    | in the application. You can add or remove channels as needed. The available
-    | channels will be used to send notifications to users based on their preferences.
+    | This optional array narrows the channels that notifiables can toggle to a
+    | subset of the keys defined in `channels`. Leave it out to offer every
+    | registered channel, or set it to an empty array to offer none. Every value
+    | must be a key from `channels`; unknown channels fail loudly. Notification
+    | types may narrow the list further with their own `available_channels`.
     |
     */
-    'available_channels' => [
-        'mail',
-        'ntfy',
-    ],
+    // 'available_channels' => [
+    //     'mail',
+    //     'ntfy',
+    // ],
 
     /*
     |--------------------------------------------------------------------------
@@ -51,6 +53,9 @@ return [
     | This array defines the required notification channels that will be used
     | when sending notifications. These channels will be used no matter what the user's
     | preferences are. You can modify this array to change the default channels for notifications.
+    |
+    | Required channels are appended even when they are not registered in `channels`
+    | or listed in `available_channels`, so they do not need a label.
     |
     */
     'required_channels' => [

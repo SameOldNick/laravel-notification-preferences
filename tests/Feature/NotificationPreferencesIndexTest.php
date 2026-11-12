@@ -237,6 +237,29 @@ class NotificationPreferencesIndexTest extends TestCase
         );
     }
 
+    public function test_index_offers_every_registered_channel_when_available_channels_is_not_configured(): void
+    {
+        config(['notification-preferences.available_channels' => null]);
+
+        $notifiable = $this->createNotifiable();
+
+        $response = $this->actingAs($notifiable)->getJson(route('notification-preferences.index'));
+
+        $response->assertOk();
+
+        $this->assertEqualsCanonicalizing(
+            [
+                'mail:login',
+                'ntfy:login',
+                'mail:password_change',
+                'ntfy:password_change',
+                'mail:backup_failed',
+                'ntfy:backup_failed',
+            ],
+            array_keys($response->json()),
+        );
+    }
+
     public function test_index_includes_types_without_any_stored_preferences(): void
     {
         $notifiable = $this->createNotifiable();

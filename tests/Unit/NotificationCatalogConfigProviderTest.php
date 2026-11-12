@@ -23,6 +23,10 @@ class NotificationCatalogConfigProviderTest extends TestCase
                 'login' => ['label' => 'Login', 'category' => 'Security'],
                 'backup_failed' => ['label' => 'Backup Failed', 'category' => 'Backups'],
             ],
+            'notification-preferences.channels' => [
+                'mail' => ['label' => 'Email'],
+                'ntfy' => ['label' => 'Ntfy'],
+            ],
             'notification-preferences.available_channels' => ['mail', 'ntfy'],
             'notification-preferences.required_channels' => ['app'],
         ]);
@@ -56,6 +60,50 @@ class NotificationCatalogConfigProviderTest extends TestCase
     public function test_available_channels_returns_the_global_channels(): void
     {
         $this->assertSame(['mail', 'ntfy'], $this->catalog()->availableNotificationChannels());
+    }
+
+    public function test_available_channels_defaults_to_every_registered_channel_when_the_global_value_is_missing(): void
+    {
+        config(['notification-preferences.available_channels' => null]);
+
+        $this->assertSame(['mail', 'ntfy'], $this->catalog()->availableNotificationChannels());
+    }
+
+    public function test_available_channels_defaults_to_every_registered_channel_when_the_type_and_global_values_are_missing(): void
+    {
+        config(['notification-preferences.available_channels' => null]);
+
+        $this->assertSame(
+            ['mail', 'ntfy'],
+            $this->catalog()->availableNotificationChannelsFor('login', new stdClass),
+        );
+    }
+
+    public function test_available_channels_returns_an_empty_list_when_the_global_value_is_empty(): void
+    {
+        config(['notification-preferences.available_channels' => []]);
+
+        $this->assertSame([], $this->catalog()->availableNotificationChannels());
+    }
+
+    public function test_available_channels_throws_when_a_global_channel_is_not_registered(): void
+    {
+        config(['notification-preferences.available_channels' => ['mail', 'slack']]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The [notification-preferences.available_channels] configuration value contains the channel [slack], which is not defined in the [notification-preferences.channels] configuration.');
+
+        $this->catalog()->availableNotificationChannels();
+    }
+
+    public function test_available_channels_throws_when_a_type_channel_is_not_registered(): void
+    {
+        config(['notification-preferences.types.login.available_channels' => ['slack']]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The [notification-preferences.types.login.available_channels] configuration value contains the channel [slack], which is not defined in the [notification-preferences.channels] configuration.');
+
+        $this->catalog()->availableNotificationChannelsFor('login', new stdClass);
     }
 
     public function test_required_channels_returns_the_global_channels(): void
