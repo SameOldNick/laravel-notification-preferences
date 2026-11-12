@@ -29,6 +29,7 @@ Use it when adding, configuring, or debugging notification preferences, or when 
 | `src/Concerns/RoutesViaNotifiablePreferences.php` | Adds preference-aware `via()` and `notificationType()` to a notification |
 | `src/Contracts/NotificationCatalog.php` | Read-only catalog of types, channels, and per-type channel lists |
 | `src/Contracts/NotificationCatalogForNotifiable.php` | Optional extension for catalogs that resolve types per notifiable |
+| `src/Contracts/NotificationChannelDefaults.php` | Optional extension for catalogs that provide per-channel default states |
 | `src/Contracts/NotificationTypeGuard.php` | Contract for the catalog-wide guard that hides types from some notifiables |
 | `src/Providers/NotificationCatalogConfigProvider.php` | Config-backed catalog implementation with per-type fallback rules |
 | `src/Services/NotificationChannelResolver.php` | Resolves the final channel list for a notifiable and type |
@@ -60,9 +61,10 @@ return [
 ];
 ```
 
-- `channels` supplies labels for display. It does not control delivery.
+- `channels` supplies labels for display plus an optional `enabled_by_default` flag that sets the state when no preference row exists.
 - `available_channels` and `required_channels` drive behavior and must contain channel names Laravel can resolve: `mail`, `database`, `broadcast`, `vonage`, or a channel class name.
 - Labels may be plain strings or translation keys.
+- A channel with no stored preference is delivered only when it is enabled by default. Required channels are always appended, regardless of defaults.
 - Required channels are appended even when they are not in `available_channels`. Only mark a channel required when the application can deliver through it.
 
 ## Adding a notification type
@@ -89,18 +91,20 @@ return [
         'category' => 'Security',
         'available_channels' => ['mail', 'database'],
         'required_channels' => ['mail'],
+        'default_channels' => ['mail'],
     ],
 
     'marketing' => [
         'label' => 'Marketing',
         'category' => 'General',
         'required_channels' => [],
+        'default_channels' => [],
     ],
 ],
 ```
 
-- Missing or `null` falls back to the matching global list.
-- `[]` opts out of the global list; `'required_channels' => []` forces nothing for that type.
+- Missing or `null` falls back to the matching global list, or to the channel `enabled_by_default` values for `default_channels`.
+- `[]` opts out of the global list; `'required_channels' => []` forces nothing for that type, and `'default_channels' => []` disables every channel by default for that type.
 - Overrides apply only to the type that declares them.
 - A type with no available channels produces no preference entries.
 
@@ -168,11 +172,13 @@ class SecurityAlert extends Notification
 `RoutesViaNotifiablePreferences::via()` calls `NotificationChannelResolver::viaNotifiablePreferencesWithRequiredChannels()`, which:
 
 1. Starts with the available channels for the type.
-2. Removes channels with an explicit disabled preference row.
+2. Removes channels with an explicit disabled preference row, and channels that are disabled by default and have no stored row.
 3. Appends the required channels for the type.
 4. Deduplicates while preserving order.
 
-If the notifiable is `null`, the trait returns no channels at all. If the notifiable has no `notificationPreferences()` method or the type has no available channels, the available channels are returned unchanged, and required channels are still appended when the notifiable supports preferences.
+Defaults come from `channels.{channel}.enabled_by_default`, which the type can override with `default_channels`. The catalog is asked through the optional `NotificationChannelDefaults` contract; catalogs that do not implement it treat missing rows as enabled.
+
+If the notifiable is `null`, the trait returns no channels at all. If the notifiable has no `notificationPreferences()` method or the type has no available channels, the available channels are returned unchanged, and required channels are still appended when the notifiable supports preferences. Defaults never apply to required channels.
 
 ## Reading preferences
 

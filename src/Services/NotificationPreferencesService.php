@@ -5,6 +5,7 @@ namespace SameOldNick\NotificationPreferences\Services;
 use InvalidArgumentException;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalogForNotifiable;
+use SameOldNick\NotificationPreferences\Contracts\NotificationChannelDefaults;
 
 use function Illuminate\Support\enum_value;
 
@@ -65,7 +66,7 @@ class NotificationPreferencesService
                 $key = $channel.':'.$type;
 
                 $notificationTypes[$key] = [
-                    'enabled' => $notificationPreferences[$key] ?? true, // Default to true if no preference is set
+                    'enabled' => $notificationPreferences[$key] ?? $this->channelEnabledByDefault($type, $channel, $notifiable),
                     'key' => $type,
                     'label' => __($notificationType['label']),
                     'category' => __($notificationType['category']),
@@ -159,6 +160,18 @@ class NotificationPreferencesService
                 }
             }
         }
+    }
+
+    /**
+     * Determine if a channel is enabled by default, falling back to enabled when the catalog has no defaults.
+     */
+    private function channelEnabledByDefault(string $notificationType, string $channel, object $notifiable): bool
+    {
+        if (! $this->notificationCatalog instanceof NotificationChannelDefaults) {
+            return true;
+        }
+
+        return $this->notificationCatalog->channelEnabledByDefault($notificationType, $channel, $notifiable);
     }
 
     /**

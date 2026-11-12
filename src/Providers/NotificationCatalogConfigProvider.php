@@ -5,9 +5,10 @@ namespace SameOldNick\NotificationPreferences\Providers;
 use Illuminate\Contracts\Config\Repository;
 use InvalidArgumentException;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalogForNotifiable;
+use SameOldNick\NotificationPreferences\Contracts\NotificationChannelDefaults;
 use SameOldNick\NotificationPreferences\Services\NotificationTypeGuardResolver;
 
-class NotificationCatalogConfigProvider implements NotificationCatalogForNotifiable
+class NotificationCatalogConfigProvider implements NotificationCatalogForNotifiable, NotificationChannelDefaults
 {
     /**
      * Create a new instance of the NotificationCatalogConfigProvider.
@@ -84,6 +85,44 @@ class NotificationCatalogConfigProvider implements NotificationCatalogForNotifia
     public function requiredNotificationChannelsFor(string $notificationType, object $notifiable): array
     {
         return $this->channelsForType($notificationType, 'required_channels');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function channelEnabledByDefault(string $notificationType, string $channel, object $notifiable): bool
+    {
+        $defaultChannelsKey = "notification-preferences.types.{$notificationType}.default_channels";
+        $defaultChannels = $this->config->get($defaultChannelsKey);
+
+        if ($defaultChannels !== null) {
+            if (! is_array($defaultChannels)) {
+                throw new InvalidArgumentException(sprintf(
+                    'The [%s] configuration value must be an array or null, %s given.',
+                    $defaultChannelsKey,
+                    get_debug_type($defaultChannels),
+                ));
+            }
+
+            return in_array($channel, $defaultChannels, true);
+        }
+
+        $enabledByDefaultKey = "notification-preferences.channels.{$channel}.enabled_by_default";
+        $enabledByDefault = $this->config->get($enabledByDefaultKey);
+
+        if ($enabledByDefault !== null) {
+            if (! is_bool($enabledByDefault)) {
+                throw new InvalidArgumentException(sprintf(
+                    'The [%s] configuration value must be a boolean or null, %s given.',
+                    $enabledByDefaultKey,
+                    get_debug_type($enabledByDefault),
+                ));
+            }
+
+            return $enabledByDefault;
+        }
+
+        return true;
     }
 
     /**

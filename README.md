@@ -59,9 +59,9 @@ The published configuration file is `config/notification-preferences.php`.
 
 Three top-level keys configure channels:
 
-- `channels` — the channels that can be offered, each with a label.
-- `available_channels` — the channels offered to users by default. Users can enable or disable each one.
-- `required_channels` — the channels that are always sent by default, regardless of user preferences. Users cannot disable these.
+- `channels` — the channels that can be offered, each with a label and an optional `enabled_by_default` flag.
+- `available_channels` — the channels offered to users. Users can enable or disable each one.
+- `required_channels` — the channels that are always sent, regardless of user preferences. Users cannot disable these.
 
 ```php
 <?php
@@ -78,6 +78,7 @@ return [
         ],
         'ntfy' => [
             'label' => 'Ntfy',
+            'enabled_by_default' => false,
         ],
     ],
 
@@ -95,10 +96,11 @@ return [
 
 - Channel keys must match the channel names your notifications return from `via()`, such as `mail`, `database`, `broadcast`, or a channel class name.
 - Labels may be plain strings or translation keys.
+- `enabled_by_default` sets the state used when the notifiable has no stored preference for that channel. It affects both the preferences list and delivery, and an omitted value means enabled. Required channels ignore it.
 - A required channel does not have to appear in `available_channels`; it is appended to the resolved channels either way.
 - The published file contains example values. Replace them with the channels your application actually sends through, and only list required channels your application can deliver.
 
-> **Note:** `channels` provides display metadata (used by `NotificationCatalog::notificationChannels()`). `available_channels` and `required_channels` control delivery behavior.
+> **Note:** `channels` provides display metadata (used by `NotificationCatalog::notificationChannels()`) and the per-channel default state. `available_channels` and `required_channels` control which channels are offered and forced.
 
 ### Notification types
 
@@ -168,12 +170,14 @@ A notification type may override the global channel lists:
         'category' => 'Security',
         'available_channels' => ['mail', 'database'],
         'required_channels' => ['mail'],
+        'default_channels' => ['mail'],
     ],
 ],
 ```
 
 - Omitting a key or setting it to `null` falls back to the matching global list.
 - An empty array opts out of the global list. For example, `'required_channels' => []` means no channel is forced for that type.
+- `default_channels` overrides the channel defaults for that type: omitted or `null` falls back to each channel's `enabled_by_default`, while `[]` disables every channel by default for the type.
 - Overrides only apply to the type that declares them.
 - A type with no available channels (global or overridden) produces no preference entries.
 
@@ -182,11 +186,11 @@ A notification type may override the global channel lists:
 When a notification that uses `RoutesViaNotifiablePreferences` is sent, its channels are resolved in this order:
 
 1. Start with the available channels for the notification type.
-2. Remove channels the notifiable has explicitly disabled.
+2. Remove channels the notifiable has disabled, and channels that are disabled by default and have no stored preference.
 3. Append the required channels for the notification type.
 4. Remove duplicates.
 
-Channels with no stored preference are treated as enabled, so newly added channels still reach existing users.
+A channel with no stored preference follows its default state: enabled unless `enabled_by_default` (or the type's `default_channels`) turns it off. Newly added channels therefore still reach existing users unless they are opt-in. Saving a preference writes an explicit row for the submitted channels, which then stops following later default changes. Required channels are appended either way.
 
 Guards do not run during delivery: a guarded-out type still resolves channels if the application sends it. Guard recipients in the application instead.
 
@@ -349,6 +353,8 @@ class AppServiceProvider extends ServiceProvider
 Both `RoutesViaNotifiablePreferences` and `NotificationPreferencesService` resolve the interface from the container, so replacing the binding changes routing and preferences together. Implement all six interface methods, return `list<string>` channel keys, and keep the singleton free of per-notifiable state — `availableNotificationChannelsFor()` and `requiredNotificationChannelsFor()` receive the notifiable for that reason.
 
 To hide whole types from specific notifiables, also implement `NotificationCatalogForNotifiable`. It adds `notificationTypesFor(object $notifiable): array`, and catalogs that implement only `NotificationCatalog` are treated as unguarded. The config-backed provider implements it by running each type's `guard`.
+
+To control the state used when a notifiable has no stored preference, implement `NotificationChannelDefaults`. It adds `channelEnabledByDefault(string $notificationType, string $channel, object $notifiable): bool`, which both the preferences list and delivery consult. Catalogs that do not implement it treat missing rows as enabled, and the config-backed provider reads `enabled_by_default` and `default_channels`.
 
 Channels are already scoped to the notifiable through `availableNotificationChannelsFor()`. If you extend the config-backed provider, filter the parent list there:
 

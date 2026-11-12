@@ -2,13 +2,23 @@
 
 namespace SameOldNick\NotificationPreferences\Services;
 
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
+use SameOldNick\NotificationPreferences\Contracts\NotificationChannelDefaults;
+
 class NotificationChannelResolver
 {
+    public function __construct(
+        private readonly NotificationCatalog $notificationCatalog,
+    ) {
+        //
+    }
+
     /**
      * Determine the channels to route to, based on the notifiable's preferences for one notification type.
      *
-     * A channel is dropped only when the notifiable recorded a disabled preference for it; a channel
-     * with no preference row is kept, so a newly added channel still reaches existing users.
+     * A channel is dropped when the notifiable recorded a disabled preference for it, or when it has no
+     * preference row and the catalog disables it by default. A channel with no preference row is otherwise
+     * kept, so a newly added channel still reaches existing users.
      *
      * @param  ?object  $notifiable  The notifiable entity to check preferences for
      * @param  string  $type  The notification type to check preferences for
@@ -30,16 +40,18 @@ class NotificationChannelResolver
             return $channels;
         }
 
-        $channels = array_unique($availableChannels);
+        $channels = array_values(array_unique($channels));
 
-        $disabledChannels = $notifiable->notificationPreferences()
+        $preferences = $notifiable->notificationPreferences()
             ->where('notification_type', $type)
             ->whereIn('channel', $channels)
-            ->where('enabled', false)
-            ->pluck('channel')
-            ->all();
+            ->pluck('enabled', 'channel');
 
-        return array_values(array_diff($channels, $this->normaliseChannels($disabledChannels)));
+        return array_values(array_filter(
+            $channels,
+            fn (string $channel): bool => (bool) ($preferences->get($channel)
+                ?? $this->channelEnabledByDefault($type, $channel, $notifiable)),
+        ));
     }
 
     /**
@@ -57,6 +69,18 @@ class NotificationChannelResolver
             ...$this->viaNotifiablePreferences($notifiable, $notificationType, $availableChannels),
             ...$this->normaliseChannels($requiredChannels),
         ]));
+    }
+
+    /**
+     * Determine if a channel is enabled by default, falling back to enabled when the catalog has no defaults.
+     */
+    private function channelEnabledByDefault(string $notificationType, string $channel, object $notifiable): bool
+    {
+        if (! $this->notificationCatalog instanceof NotificationChannelDefaults) {
+            return true;
+        }
+
+        return $this->notificationCatalog->channelEnabledByDefault($notificationType, $channel, $notifiable);
     }
 
     /**
