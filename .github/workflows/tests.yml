@@ -18,12 +18,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - laravel: '11.*'
-            testbench: '9.*'
-          - laravel: '12.*'
-            testbench: '10.*'
-          - laravel: '13.*'
-            testbench: '11.*'
+          - laravel: "11.*"
+            testbench: "9.*"
+          - laravel: "12.*"
+            testbench: "10.*"
+          - laravel: "13.*"
+            testbench: "11.*"
 
     steps:
       - name: Setup PHP
@@ -31,7 +31,7 @@ jobs:
         with:
           php-version: 8.4
           tools: composer:v2
-          coverage: xdebug
+          coverage: ${{ matrix.laravel == '13.*' && 'xdebug' || 'none' }}
 
       - uses: actions/checkout@v6
 
@@ -58,17 +58,23 @@ jobs:
 
       - name: Execute tests (Unit and Feature tests) via PHPUnit/Pest
         env:
-          XDEBUG_MODE: coverage
-        run: composer test -- --parallel --coverage-clover coverage.xml --log-junit junit.xml
+          XDEBUG_MODE: ${{ matrix.laravel == '13.*' && 'coverage' || 'off' }}
+        run: |
+          if [ "${{ matrix.laravel }}" = "13.*" ]; then
+              composer test --parallel --coverage-clover coverage.xml --log-junit junit.xml
+          else
+              composer test --parallel
+          fi
 
       - name: Upload coverage reports to Codecov
+        if: ${{ !cancelled() && matrix.laravel == '13.*' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report_type: coverage
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.laravel == '13.*' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
