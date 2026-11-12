@@ -61,9 +61,9 @@ jobs:
           XDEBUG_MODE: ${{ matrix.laravel == '13.*' && 'coverage' || 'off' }}
         run: |
           if [ "${{ matrix.laravel }}" = "13.*" ]; then
-              composer test --parallel --coverage-clover coverage.xml --log-junit junit.xml
+              composer test -- --parallel --coverage-clover coverage.xml --log-junit junit.xml
           else
-              composer test --parallel
+              composer test -- --parallel
           fi
 
       - name: Upload coverage reports to Codecov
