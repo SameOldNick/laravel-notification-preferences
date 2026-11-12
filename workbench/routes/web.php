@@ -22,11 +22,13 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('/notification-preferences', function (Request $request) {
         $notifiable = $request->user();
         $notificationCatalog = app(NotificationCatalog::class);
+        $notificationTypes = app(NotificationPreferencesService::class)
+            ->getNotificationTypesForNotifiable($notifiable);
 
         $rules = [
             'types' => [
                 'required',
-                'array:'.implode(',', array_keys($notificationCatalog->notificationTypes())),
+                'array:'.implode(',', array_keys($notificationTypes)),
             ],
             'types.*.channels' => Rule::forEach(function (mixed $channels, string $attribute) use ($notificationCatalog, $notifiable) {
                 return [

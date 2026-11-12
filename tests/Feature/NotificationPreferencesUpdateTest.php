@@ -4,6 +4,7 @@ namespace SameOldNick\NotificationPreferences\Tests\Feature;
 
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Models\NotifiableNotificationPreference;
+use SameOldNick\NotificationPreferences\Tests\Fixtures\ConfigDrivenGuard;
 use SameOldNick\NotificationPreferences\Tests\TestCase;
 use Workbench\App\Models\User;
 
@@ -515,6 +516,24 @@ class NotificationPreferencesUpdateTest extends TestCase
             ]))
             ->assertRedirect()
             ->assertSessionHasErrors(['types']);
+
+        $this->assertDatabaseCount('notifiable_notification_preferences', 0);
+    }
+
+    public function test_update_rejects_a_type_that_is_guarded_for_the_notifiable(): void
+    {
+        config([
+            'notification-preferences.guard' => ConfigDrivenGuard::class,
+            'notification-preferences.test_guard_allowed_types' => ['password_change', 'backup_failed'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->actingAs($notifiable)
+            ->postJson(route('notification-preferences.update'), $this->payload([
+                'login' => ['mail' => false],
+            ]))
+            ->assertUnprocessable();
 
         $this->assertDatabaseCount('notifiable_notification_preferences', 0);
     }

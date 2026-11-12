@@ -4,6 +4,7 @@ namespace SameOldNick\NotificationPreferences\Tests\Feature;
 
 use Illuminate\Support\Facades\Lang;
 use SameOldNick\NotificationPreferences\Models\NotifiableNotificationPreference;
+use SameOldNick\NotificationPreferences\Tests\Fixtures\ConfigDrivenGuard;
 use SameOldNick\NotificationPreferences\Tests\TestCase;
 
 class NotificationPreferencesIndexTest extends TestCase
@@ -288,6 +289,30 @@ class NotificationPreferencesIndexTest extends TestCase
                     'channel' => 'mail',
                 ],
             ]);
+    }
+
+    public function test_index_omits_types_that_are_guarded_for_the_notifiable(): void
+    {
+        config([
+            'notification-preferences.guard' => ConfigDrivenGuard::class,
+            'notification-preferences.test_guard_allowed_types' => ['password_change', 'backup_failed'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+
+        $response = $this->actingAs($notifiable)->getJson(route('notification-preferences.index'));
+
+        $response->assertOk();
+
+        $this->assertEqualsCanonicalizing(
+            [
+                'mail:password_change',
+                'ntfy:password_change',
+                'mail:backup_failed',
+                'ntfy:backup_failed',
+            ],
+            array_keys($response->json()),
+        );
     }
 
     public function test_index_reads_the_type_and_channel_providers_at_request_time(): void

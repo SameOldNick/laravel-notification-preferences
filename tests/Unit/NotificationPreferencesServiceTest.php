@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Lang;
 use InvalidArgumentException;
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalogForNotifiable;
 use SameOldNick\NotificationPreferences\Models\NotifiableNotificationPreference;
 use SameOldNick\NotificationPreferences\Services\NotificationPreferencesService;
 use SameOldNick\NotificationPreferences\Tests\Fixtures\Channel;
@@ -269,6 +270,53 @@ class NotificationPreferencesServiceTest extends TestCase
         );
     }
 
+    public function test_get_notification_types_for_notifiable_uses_the_notifiable_aware_catalog(): void
+    {
+        $notifiable = $this->createNotifiable();
+        $guardedTypes = ['login' => self::TYPES['login']];
+
+        $catalog = $this->mock(NotificationCatalogForNotifiable::class);
+        $catalog->expects('notificationTypesFor')->once()->with($notifiable)->andReturn($guardedTypes);
+
+        $this->assertSame(
+            $guardedTypes,
+            (new NotificationPreferencesService($catalog))->getNotificationTypesForNotifiable($notifiable),
+        );
+    }
+
+    public function test_get_notification_types_for_notifiable_falls_back_to_the_unscoped_types(): void
+    {
+        $notifiable = $this->createNotifiable();
+
+        $catalog = $this->mock(NotificationCatalog::class);
+        $catalog->expects('notificationTypes')->once()->andReturn(self::TYPES);
+
+        $this->assertSame(
+            self::TYPES,
+            (new NotificationPreferencesService($catalog))->getNotificationTypesForNotifiable($notifiable),
+        );
+    }
+
+    public function test_get_notification_types_for_notifiable_rejects_a_notifiable_without_preferences_support(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The provided notifiable does not support notification preferences.');
+
+        $this->service()->getNotificationTypesForNotifiable(new stdClass);
+    }
+
+    public function test_get_preferences_omits_types_that_are_guarded_out(): void
+    {
+        $catalog = $this->mock(NotificationCatalogForNotifiable::class);
+        $catalog->allows('notificationTypesFor')->andReturn(['login' => self::TYPES['login']]);
+        $catalog->allows('availableNotificationChannelsFor')->andReturn(['mail', 'ntfy']);
+
+        $preferences = (new NotificationPreferencesService($catalog))
+            ->getPreferencesForNotifiable($this->createNotifiable());
+
+        $this->assertSame(['mail:login', 'ntfy:login'], array_keys($preferences));
+    }
+
     public function test_get_preferences_rejects_a_notifiable_without_preferences_support(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -398,15 +446,72 @@ class NotificationPreferencesServiceTest extends TestCase
         $this->assertTrue($this->preferenceFor($otherNotifiable, 'login', 'mail')?->enabled);
     }
 
-    public function test_update_preferences_persists_any_type_and_channel_without_validating_them(): void
+    public function test_update_preferences_rejects_a_type_that_is_not_in_the_catalog(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The notification type [not_a_configured_type] is not available for this notifiable.');
+
+        $this->service()->updatePreferencesForNotifiable($this->createNotifiable(), [
+            'not_a_configured_type' => ['channels' => ['mail' => false]],
+        ]);
+    }
+
+    public function test_update_preferences_rejects_a_channel_that_is_not_available_for_the_type(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The notification channel [ntfy] is not available for notification type [login].');
+
+        $this->service(['mail'])->updatePreferencesForNotifiable($this->createNotifiable(), [
+            'login' => ['channels' => ['ntfy' => false]],
+        ]);
+    }
+
+    public function test_update_preferences_rejects_a_type_that_is_guarded_out_for_the_notifiable(): void
+    {
+        $catalog = $this->mock(NotificationCatalogForNotifiable::class);
+        $catalog->allows('notificationTypesFor')->andReturn(['login' => self::TYPES['login']]);
+        $catalog->allows('availableNotificationChannelsFor')->andReturn(['mail']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The notification type [backup_failed] is not available for this notifiable.');
+
+        (new NotificationPreferencesService($catalog))->updatePreferencesForNotifiable($this->createNotifiable(), [
+            'backup_failed' => ['channels' => ['mail' => false]],
+        ]);
+    }
+
+    public function test_update_preferences_accepts_a_required_channel_that_is_not_available(): void
     {
         $notifiable = $this->createNotifiable();
 
-        $this->service()->updatePreferencesForNotifiable($notifiable, [
-            'not_a_configured_type' => ['channels' => ['not_a_configured_channel' => false]],
+        $catalog = $this->mock(NotificationCatalog::class);
+        $catalog->allows('notificationTypes')->andReturn(self::TYPES);
+        $catalog->allows('availableNotificationChannelsFor')->andReturn(['mail']);
+        $catalog->allows('requiredNotificationChannelsFor')->andReturn(['database']);
+
+        (new NotificationPreferencesService($catalog))->updatePreferencesForNotifiable($notifiable, [
+            'login' => ['channels' => ['database' => false]],
         ]);
 
-        $this->assertFalse($this->preferenceFor($notifiable, 'not_a_configured_type', 'not_a_configured_channel')?->enabled);
+        $this->assertFalse($this->preferenceFor($notifiable, 'login', 'database')?->enabled);
+    }
+
+    public function test_update_preferences_does_not_partially_apply_an_invalid_payload(): void
+    {
+        $notifiable = $this->createNotifiable();
+
+        try {
+            $this->service(['mail'])->updatePreferencesForNotifiable($notifiable, [
+                'login' => ['channels' => ['mail' => false]],
+                'backup_failed' => ['channels' => ['ntfy' => false]],
+            ]);
+
+            $this->fail('Expected an InvalidArgumentException.');
+        } catch (InvalidArgumentException) {
+            // Expected: the whole payload is rejected before anything is written.
+        }
+
+        $this->assertSame(0, $notifiable->notificationPreferences()->count());
     }
 
     public function test_update_preferences_accepts_integer_flags_and_stores_booleans(): void
@@ -461,6 +566,7 @@ class NotificationPreferencesServiceTest extends TestCase
     {
         $catalog = $this->mock(NotificationCatalog::class);
         $catalog->allows('availableNotificationChannelsFor')->andReturn($availableChannels);
+        $catalog->allows('requiredNotificationChannelsFor')->andReturn([]);
         $catalog->allows('notificationTypes')->andReturn($types ?? self::TYPES);
 
         return new NotificationPreferencesService($catalog);
