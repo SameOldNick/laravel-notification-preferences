@@ -52,6 +52,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Notification Type Guard
+    |--------------------------------------------------------------------------
+    |
+    | An optional class-string implementing
+    | SameOldNick\NotificationPreferences\Contracts\NotificationTypeGuard. The guard
+    | is consulted for every configured type, so it can hide types from notifiables
+    | that may not use them. Leave it null to leave every type unguarded.
+    |
+    | The guard is resolved from the container, so it may declare constructor
+    | dependencies. Set it to the contract itself to resolve whichever
+    | implementation is bound to the container instead of naming a concrete class.
+    |
+    | Use a class-string rather than a closure so `config:cache` can still serialize
+    | this file.
+    |
+    */
+    'guard' => null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Notification Types
     |--------------------------------------------------------------------------
     |

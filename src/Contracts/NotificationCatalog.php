@@ -12,6 +12,9 @@ interface NotificationCatalog
      *
      * The available_channels and required_channels keys are optional and can be used to override the global available and required channels for a specific notification type.
      *
+     * This list is not scoped to a notifiable. Catalogs that can hide types from
+     * specific notifiables should also implement NotificationCatalogForNotifiable.
+     *
      * @return array<string, array{label: string, category: string, available_channels?: list<string>, required_channels?: list<string>}> The list of notification types with their labels and categories.
      */
     public function notificationTypes(): array;

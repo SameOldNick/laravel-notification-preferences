@@ -28,6 +28,8 @@ Use it when adding, configuring, or debugging notification preferences, or when 
 | `src/Concerns/HasNotificationPreferences.php` | Adds the `notificationPreferences()` morph-many relation to a notifiable |
 | `src/Concerns/RoutesViaNotifiablePreferences.php` | Adds preference-aware `via()` and `notificationType()` to a notification |
 | `src/Contracts/NotificationCatalog.php` | Read-only catalog of types, channels, and per-type channel lists |
+| `src/Contracts/NotificationCatalogForNotifiable.php` | Optional extension for catalogs that resolve types per notifiable |
+| `src/Contracts/NotificationTypeGuard.php` | Contract for the catalog-wide guard that hides types from some notifiables |
 | `src/Providers/NotificationCatalogConfigProvider.php` | Config-backed catalog implementation with per-type fallback rules |
 | `src/Services/NotificationChannelResolver.php` | Resolves the final channel list for a notifiable and type |
 | `src/Services/NotificationPreferencesService.php` | Reads and writes preferences for a notifiable |
@@ -101,6 +103,41 @@ return [
 - `[]` opts out of the global list; `'required_channels' => []` forces nothing for that type.
 - Overrides apply only to the type that declares them.
 - A type with no available channels produces no preference entries.
+
+## Guarding types
+
+Some types only apply to certain notifiables. Configure one guard for the whole catalog; it is asked about every configured type:
+
+```php
+'guard' => App\Notifications\NotificationGuard::class,
+```
+
+```php
+<?php
+
+namespace App\Notifications;
+
+use SameOldNick\NotificationPreferences\Contracts\NotificationTypeGuard;
+
+class NotificationGuard implements NotificationTypeGuard
+{
+    public function allows(string $notificationType, object $notifiable): bool
+    {
+        return match ($notificationType) {
+            'billing-failed' => $notifiable->hasRole('billing'),
+            default => true,
+        };
+    }
+}
+```
+
+- The guard is resolved from the container, so it may declare constructor dependencies.
+- Set `guard` to `NotificationTypeGuard::class` to resolve the implementation bound to the contract. Without a binding, configuring the contract throws `InvalidArgumentException`.
+- A missing or `null` guard leaves every type unguarded. A guard that is not a class-string implementing the contract throws `InvalidArgumentException`.
+- Use a class-string rather than a closure so `config:cache` still works.
+- Guarded-out types are omitted from `getPreferencesForNotifiable()` and `getNotificationTypesForNotifiable()`, and rejected by `updatePreferencesForNotifiable()`.
+- The guard runs per type and notifiable on every call; keep it cheap.
+- Guards do not run during delivery. Sending a guarded-out type still resolves channels, so gate recipients in the application.
 
 ## Notification wiring
 
@@ -184,13 +221,13 @@ app(NotificationPreferencesService::class)->updatePreferencesForNotifiable($requ
 
 - The payload shape is `[type => ['channels' => [channel => bool]]]`.
 - Existing rows are updated, missing rows are created, and unchanged rows are skipped.
-- The service performs no validation. Reject unknown types and channels before calling it.
+- The service rejects types that are not available to the notifiable and channels that are not available (or required) for the type, throwing `InvalidArgumentException` before writing anything.
 - Both methods throw `InvalidArgumentException` when the model does not use `HasNotificationPreferences`.
 - Preference rows for channels later removed from `available_channels` are ignored; they do not need to be deleted.
 
 ## Validating input
 
-Validate against `NotificationCatalog` so users cannot submit types or channels the application does not support:
+Validate against the catalog so users cannot submit types or channels the application does not support. `getNotificationTypesForNotifiable()` applies guards, so guarded-out types are rejected too:
 
 ```php
 use Illuminate\Http\Request;
@@ -202,12 +239,15 @@ use SameOldNick\NotificationPreferences\Services\NotificationPreferencesService;
 public function update(Request $request)
 {
     $catalog = app(NotificationCatalog::class);
+    $service = app(NotificationPreferencesService::class);
     $notifiable = $request->user();
+
+    $notificationTypes = $service->getNotificationTypesForNotifiable($notifiable);
 
     $validated = $request->validate([
         'types' => [
             'required',
-            'array:'.implode(',', array_keys($catalog->notificationTypes())),
+            'array:'.implode(',', array_keys($notificationTypes)),
         ],
         'types.*.channels' => Rule::forEach(function (mixed $channels, string $attribute) use ($catalog, $notifiable) {
             $type = Str::between($attribute, 'types.', '.channels');
@@ -220,8 +260,7 @@ public function update(Request $request)
         'types.*.channels.*' => ['required', 'boolean'],
     ]);
 
-    app(NotificationPreferencesService::class)
-        ->updatePreferencesForNotifiable($notifiable, $validated['types']);
+    $service->updatePreferencesForNotifiable($notifiable, $validated['types']);
 
     return response()->noContent();
 }
@@ -238,11 +277,12 @@ $this->app->singleton(NotificationCatalog::class, DatabaseNotificationCatalog::c
 ```
 
 - Implement all six methods: `notificationTypes()`, `notificationChannels()`, `availableNotificationChannels()`, `requiredNotificationChannels()`, `availableNotificationChannelsFor()`, and `requiredNotificationChannelsFor()`.
+- Also implement `NotificationCatalogForNotifiable` to hide whole types per notifiable through `notificationTypesFor()`. Catalogs that only implement `NotificationCatalog` are treated as unguarded.
 - Return the documented metadata shapes: types expose `label` and `category` plus optional channel lists; channels expose `label`.
 - Return `list<string>` channel keys. The resolver deduplicates and preserves order.
-- The per-notifiable methods receive the notifiable, so availability can depend on a plan, tenant, or other user state.
+- The per-notifiable methods receive the notifiable, so availability can depend on a plan, tenant, or other user state. Guard channels by filtering `availableNotificationChannelsFor()`; required channels are appended even when unavailable.
 - The catalog is a singleton. Do not store notifiable state on the instance; compute per call or memoize keyed by the notifiable.
-- `getPreferencesForNotifiable()` only uses `availableNotificationChannelsFor()`. Required channels affect delivery, not the returned preference list.
+- `getPreferencesForNotifiable()` only uses the type list and `availableNotificationChannelsFor()`. Required channels affect delivery, not the returned preference list.
 
 ## Testing
 

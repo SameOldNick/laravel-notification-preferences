@@ -113,6 +113,50 @@ Each notification type is keyed by the value returned from its `notificationType
 ],
 ```
 
+### Guarding notification types
+
+Some types only apply to certain notifiables, based on roles, permissions, or a plan. Configure a single guard for the whole catalog; it is asked about every configured type:
+
+```php
+'guard' => App\Notifications\NotificationGuard::class,
+```
+
+```php
+<?php
+
+namespace App\Notifications;
+
+use SameOldNick\NotificationPreferences\Contracts\NotificationTypeGuard;
+
+class NotificationGuard implements NotificationTypeGuard
+{
+    public function allows(string $notificationType, object $notifiable): bool
+    {
+        return match ($notificationType) {
+            'billing_failed' => $notifiable->hasRole('billing'),
+            default => true,
+        };
+    }
+}
+```
+
+- The guard is resolved from the container, so it may declare constructor dependencies. Bind it as a singleton if constructing it is expensive.
+- Set `guard` to `NotificationTypeGuard::class` to resolve the implementation bound to the contract instead of naming a concrete class. Configuring the contract without a binding throws an `InvalidArgumentException`.
+- A missing or `null` guard leaves every type unguarded. Any other value that is not a class-string implementing the contract throws an `InvalidArgumentException`.
+- Use a class-string rather than a closure, so `config:cache` can still serialize the configuration.
+- Guarded-out types are omitted from `getPreferencesForNotifiable()` and `getNotificationTypesForNotifiable()`, and rejected by `updatePreferencesForNotifiable()`.
+- The guard runs once per type and notifiable on every call, so keep it cheap.
+- Guards control what a notifiable can see and configure. They do not prevent the application from sending that notification, so choose recipients with your own authorization.
+
+To use a Gate or policy, call it from the guard:
+
+```php
+public function allows(string $notificationType, object $notifiable): bool
+{
+    return Gate::forUser($notifiable)->allows('receive-notification-type', $notificationType);
+}
+```
+
 ### Per-type channel overrides
 
 A notification type may override the global channel lists:
@@ -143,6 +187,8 @@ When a notification that uses `RoutesViaNotifiablePreferences` is sent, its chan
 4. Remove duplicates.
 
 Channels with no stored preference are treated as enabled, so newly added channels still reach existing users.
+
+Guards do not run during delivery: a guarded-out type still resolves channels if the application sends it. Guard recipients in the application instead.
 
 ## Usage
 
@@ -216,7 +262,19 @@ $channels = app(NotificationCatalog::class)->notificationChannels();
 
 Channel labels may be translation keys, so pass them through `__()` before displaying them.
 
-Validate the incoming types and channels against `SameOldNick\NotificationPreferences\Contracts\NotificationCatalog` before calling `updatePreferencesForNotifiable()`, since the service stores whatever it is given.
+`updatePreferencesForNotifiable()` rejects types that are not available to the notifiable and channels that are not available for the submitted type, throwing an `InvalidArgumentException` before writing anything. Validate the request first so users get a 422 instead of a 500:
+
+```php
+use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
+use SameOldNick\NotificationPreferences\Services\NotificationPreferencesService;
+
+$catalog = app(NotificationCatalog::class);
+$service = app(NotificationPreferencesService::class);
+
+$allowedTypes = array_keys($service->getNotificationTypesForNotifiable($user));
+```
+
+`getNotificationTypesForNotifiable()` applies the same guards as `getPreferencesForNotifiable()`, so guarded-out types cannot be submitted either. A channel that is required for a type but not available is still accepted, because the type is deliverable through it.
 
 ### Custom notification catalogs
 
@@ -241,6 +299,24 @@ class AppServiceProvider extends ServiceProvider
 ```
 
 Both `RoutesViaNotifiablePreferences` and `NotificationPreferencesService` resolve the interface from the container, so replacing the binding changes routing and preferences together. Implement all six interface methods, return `list<string>` channel keys, and keep the singleton free of per-notifiable state — `availableNotificationChannelsFor()` and `requiredNotificationChannelsFor()` receive the notifiable for that reason.
+
+To hide whole types from specific notifiables, also implement `NotificationCatalogForNotifiable`. It adds `notificationTypesFor(object $notifiable): array`, and catalogs that implement only `NotificationCatalog` are treated as unguarded. The config-backed provider implements it by running each type's `guard`.
+
+Channels are already scoped to the notifiable through `availableNotificationChannelsFor()`. If you extend the config-backed provider, filter the parent list there:
+
+```php
+public function availableNotificationChannelsFor(string $notificationType, object $notifiable): array
+{
+    $channels = parent::availableNotificationChannelsFor($notificationType, $notifiable);
+
+    return array_values(array_filter(
+        $channels,
+        fn (string $channel): bool => $channel !== 'sms' || $notifiable->phone_verified_at !== null,
+    ));
+}
+```
+
+Required channels are appended even when they are not available, so guard them too if they must never be delivered.
 
 ## Laravel Boost
 
