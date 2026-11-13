@@ -6,6 +6,27 @@
 
 Let users choose which channels each type of notification is delivered through, while guaranteeing that important notifications always reach them.
 
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+  - [Channels](#channels)
+  - [Notification types](#notification-types)
+  - [Guarding notification types](#guarding-notification-types)
+  - [Per-type channel overrides](#per-type-channel-overrides)
+  - [How the channel list is resolved](#how-the-channel-list-is-resolved)
+- [Usage](#usage)
+  - [Mapping a notification to a type](#mapping-a-notification-to-a-type)
+  - [Reading and updating preferences](#reading-and-updating-preferences)
+  - [Custom notification catalogs](#custom-notification-catalogs)
+- [Upgrading](#upgrading)
+  - [From 1.0.x to 1.1.0](#from-10x-to-110)
+- [Laravel Boost](#laravel-boost)
+- [Development](#development)
+- [Security](#security)
+- [License](#license)
+
 ## Requirements
 
 - PHP 8.4 or higher
