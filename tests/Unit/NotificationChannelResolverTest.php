@@ -4,6 +4,9 @@ namespace SameOldNick\NotificationPreferences\Tests\Unit;
 
 use SameOldNick\NotificationPreferences\Contracts\NotificationCatalog;
 use SameOldNick\NotificationPreferences\Services\NotificationChannelResolver;
+use SameOldNick\NotificationPreferences\Services\NotificationTypeGuardResolver;
+use SameOldNick\NotificationPreferences\Tests\Fixtures\ConfigDrivenGuard;
+use SameOldNick\NotificationPreferences\Tests\Fixtures\NotifiablePropertyGuard;
 use SameOldNick\NotificationPreferences\Tests\TestCase;
 use stdClass;
 
@@ -273,8 +276,102 @@ class NotificationChannelResolverTest extends TestCase
 
         $this->assertSame(
             ['mail'],
-            (new NotificationChannelResolver($this->mock(NotificationCatalog::class)))
-                ->viaNotifiablePreferences($notifiable, 'login', ['mail']),
+            (new NotificationChannelResolver(
+                $this->mock(NotificationCatalog::class),
+                $this->app->make(NotificationTypeGuardResolver::class),
+            ))->viaNotifiablePreferences($notifiable, 'login', ['mail']),
+        );
+    }
+
+    public function test_returns_the_available_channels_when_no_guard_is_configured(): void
+    {
+        config(['notification-preferences.guard' => null]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->assertSame(
+            ['mail', 'ntfy'],
+            $this->resolver()->viaNotifiablePreferences($notifiable, 'login', ['mail', 'ntfy']),
+        );
+    }
+
+    public function test_returns_the_available_channels_when_the_guard_allows_the_notification_type(): void
+    {
+        config([
+            'notification-preferences.guard' => ConfigDrivenGuard::class,
+            'notification-preferences.test_guard_allowed_types' => ['login'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->assertSame(
+            ['mail', 'ntfy'],
+            $this->resolver()->viaNotifiablePreferences($notifiable, 'login', ['mail', 'ntfy']),
+        );
+    }
+
+    public function test_returns_no_channels_when_the_guard_denies_the_notification_type(): void
+    {
+        config([
+            'notification-preferences.guard' => ConfigDrivenGuard::class,
+            'notification-preferences.test_guard_allowed_types' => ['backup_failed'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->assertSame([], $this->resolver()->viaNotifiablePreferences($notifiable, 'login', ['mail', 'ntfy']));
+    }
+
+    public function test_the_guard_takes_precedence_over_an_enabled_preference(): void
+    {
+        config([
+            'notification-preferences.guard' => ConfigDrivenGuard::class,
+            'notification-preferences.test_guard_allowed_types' => ['backup_failed'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+        $this->createPreference($notifiable, 'login', 'mail', true);
+
+        $this->assertSame([], $this->resolver()->viaNotifiablePreferences($notifiable, 'login', ['mail']));
+    }
+
+    public function test_with_defaults_returns_no_channels_when_the_guard_denies_the_notification_type(): void
+    {
+        config([
+            'notification-preferences.guard' => ConfigDrivenGuard::class,
+            'notification-preferences.test_guard_allowed_types' => ['backup_failed'],
+        ]);
+
+        $notifiable = $this->createNotifiable();
+
+        $this->assertSame(
+            [],
+            $this->resolver()->viaNotifiablePreferencesWithRequiredChannels($notifiable, 'login', ['mail'], ['database']),
+        );
+    }
+
+    public function test_checks_the_guard_for_a_notifiable_without_preferences_support(): void
+    {
+        config([
+            'notification-preferences.guard' => ConfigDrivenGuard::class,
+            'notification-preferences.test_guard_allowed_types' => ['backup_failed'],
+        ]);
+
+        $this->assertSame([], $this->resolver()->viaNotifiablePreferences(new stdClass, 'login', ['mail']));
+    }
+
+    public function test_passes_the_notifiable_to_the_guard(): void
+    {
+        config(['notification-preferences.guard' => NotifiablePropertyGuard::class]);
+
+        $this->assertSame(
+            ['mail'],
+            $this->resolver()->viaNotifiablePreferences((object) ['receives_notifications' => true], 'login', ['mail']),
+        );
+
+        $this->assertSame(
+            [],
+            $this->resolver()->viaNotifiablePreferences((object) ['receives_notifications' => false], 'login', ['mail']),
         );
     }
 

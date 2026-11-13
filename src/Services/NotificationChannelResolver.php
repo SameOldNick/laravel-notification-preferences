@@ -9,6 +9,7 @@ class NotificationChannelResolver
 {
     public function __construct(
         private readonly NotificationCatalog $notificationCatalog,
+        private readonly NotificationTypeGuardResolver $notificationTypeGuardResolver,
     ) {
         //
     }
@@ -34,9 +35,48 @@ class NotificationChannelResolver
             return [];
         }
 
+        if (! $this->checkNotifiableAllowsNotificationType($notifiable, $type)) {
+            return [];
+        }
+
+        return $this->allowedChannels($notifiable, $type, $availableChannels);
+    }
+
+    /**
+     * Similar to viaNotifiablePreferences but appends channels that are included regardless of preferences.
+     *
+     * A type the guard denies yields no channels at all; required channels are not appended, since they
+     * would otherwise deliver a type the notifiable may not receive.
+     *
+     * @param  string  $notificationType  The notification type to check preferences for
+     * @param  object  $notifiable  The notifiable entity to check preferences for
+     * @param  array<int, string>  $availableChannels  Available channels that the notification can be sent to
+     * @param  array<int, string>  $requiredChannels  Channels that should always be included, even if the notifiable has disabled them.
+     * @return array<int, string>
+     */
+    public function viaNotifiablePreferencesWithRequiredChannels(object $notifiable, string $notificationType, array $availableChannels = [], array $requiredChannels = []): array
+    {
+        if (! $this->checkNotifiableAllowsNotificationType($notifiable, $notificationType)) {
+            return [];
+        }
+
+        return array_values(array_unique([
+            ...$this->allowedChannels($notifiable, $notificationType, $availableChannels),
+            ...$this->normaliseChannels($requiredChannels),
+        ]));
+    }
+
+    /**
+     * Resolve the channels the notifiable has not disabled for one notification type.
+     *
+     * @param  array<int, string>  $availableChannels
+     * @return list<string>
+     */
+    private function allowedChannels(object $notifiable, string $type, array $availableChannels): array
+    {
         $channels = $this->normaliseChannels($availableChannels);
 
-        if ($channels === [] || ! $this->notifiableHasPreferences($notifiable)) {
+        if ($channels === [] || ! method_exists($notifiable, 'notificationPreferences')) {
             return $channels;
         }
 
@@ -55,20 +95,21 @@ class NotificationChannelResolver
     }
 
     /**
-     * Similar to viaNotifiablePreferences but appends channels that are included regardless of preferences.
+     * Check if the notifiable allows the given notification type, using the configured guard.
      *
-     * @param  string  $notificationType  The notification type to check preferences for
-     * @param  object  $notifiable  The notifiable entity to check preferences for
-     * @param  array<int, string>  $availableChannels  Available channels that the notification can be sent to
-     * @param  array<int, string>  $requiredChannels  Channels that should always be included, even if the notifiable has disabled them.
-     * @return array<int, string>
+     * @param  object  $notifiable  The notifiable entity to check
+     * @param  string  $notificationType  The notification type to check
+     * @return bool True if the notifiable allows the notification type, false otherwise
      */
-    public function viaNotifiablePreferencesWithRequiredChannels(object $notifiable, string $notificationType, array $availableChannels = [], array $requiredChannels = []): array
+    protected function checkNotifiableAllowsNotificationType(object $notifiable, string $notificationType): bool
     {
-        return array_values(array_unique([
-            ...$this->viaNotifiablePreferences($notifiable, $notificationType, $availableChannels),
-            ...$this->normaliseChannels($requiredChannels),
-        ]));
+        $guard = $this->notificationTypeGuardResolver->resolve();
+
+        if (! $guard) {
+            return true;
+        }
+
+        return $guard->allows($notificationType, $notifiable);
     }
 
     /**
@@ -92,13 +133,5 @@ class NotificationChannelResolver
     private function normaliseChannels(array $channels): array
     {
         return array_values($channels);
-    }
-
-    /**
-     * Check if notifiable has preferences
-     */
-    private function notifiableHasPreferences(object $notifiable): bool
-    {
-        return method_exists($notifiable, 'notificationPreferences');
     }
 }
