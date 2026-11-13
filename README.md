@@ -21,6 +21,7 @@ Let users choose which channels each type of notification is delivered through, 
   - [Reading and updating preferences](#reading-and-updating-preferences)
   - [Custom notification catalogs](#custom-notification-catalogs)
 - [Upgrading](#upgrading)
+  - [From 1.1.0 to 1.1.1](#from-110-to-111)
   - [From 1.0.x to 1.1.0](#from-10x-to-110)
 - [Laravel Boost](#laravel-boost)
 - [Development](#development)
@@ -398,6 +399,16 @@ Required channels are appended even when they are not available, but a type the 
 
 ## Upgrading
 
+### From 1.1.0 to 1.1.1
+
+This release applies the notification type guard when channels are resolved and adds a hook for `null` notifiables. No database or configuration changes are required.
+
+1. **Audit guards for delivery.** `via()` now resolves no channels for a type the guard rejects, and required channels no longer override the guard. A guard that was only written for the preferences UI now also runs when a notification is sent, including from queue workers, so it must not rely on request-only state such as the session or the authenticated guard. Use the notifiable it receives, for example with `Gate::forUser($notifiable)`.
+
+2. **Resolve `NotificationChannelResolver` from the container.** Its constructor now also requires a `NotificationTypeGuardResolver`. `RoutesViaNotifiablePreferences` already resolves it with `app()`, so only code that instantiates the resolver directly must pass the guard resolver as well.
+
+3. **Override `getNullNotifiableVia()` only if needed.** Notifications sent without a notifiable still resolve no channels by default. Override the method when they should use a fixed channel list.
+
 ### From 1.0.x to 1.1.0
 
 This release adds channel defaults and type guards, and makes `available_channels` optional. No database changes are required.
@@ -414,7 +425,7 @@ This release adds channel defaults and type guards, and makes `available_channel
 
 5. **Resolve `NotificationChannelResolver` from the container.** Its constructor now requires a `NotificationCatalog`. `RoutesViaNotifiablePreferences` already resolves it with `app()`, so only code that instantiates the resolver directly must pass the catalog.
 
-6. **Adopt the new extension points only if needed.** `NotificationCatalogForNotifiable`, `NotificationChannelDefaults`, `NotificationTypeGuard`, and the `NotificationType` attribute are additive; the `NotificationCatalog` interface itself is unchanged, so existing custom catalogs keep working. Configuring `guard` hides rejected types from the preferences list and from updates, but does not stop your application from sending them.
+6. **Adopt the new extension points only if needed.** `NotificationCatalogForNotifiable`, `NotificationChannelDefaults`, `NotificationTypeGuard`, and the `NotificationType` attribute are additive; the `NotificationCatalog` interface itself is unchanged, so existing custom catalogs keep working. Configuring `guard` hides rejected types from the preferences list and from updates. From 1.1.1 it also blocks delivery, so a guarded-out type resolves no channels.
 
 ## Laravel Boost
 

@@ -5,6 +5,21 @@ All notable changes are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-11-12
+
+### Added
+
+- `RoutesViaNotifiablePreferences::getNullNotifiableVia()`, an overridable hook for the channels used when the notifiable is `null`. It returns no channels by default.
+
+### Changed
+
+- `NotificationChannelResolver` now requires a `NotificationTypeGuardResolver` in its constructor.
+
+### Fixed
+
+- Channel resolution did not apply the configured notification type guard, so a guarded-out type was still delivered when the application dispatched it. `NotificationChannelResolver` now checks the guard once per call and resolves no channels for a type it rejects.
+- Required channels were appended even when the notifiable was not allowed the notification type, which delivered guarded-out types through `required_channels`.
+
 ## [1.1.0] - 2026-11-12
 
 ### Added
@@ -48,5 +63,6 @@ First release.
 - Support for Laravel 11, 12, and 13 on PHP 8.4+.
 - Laravel Boost guidelines and the `notification-preferences-development` agent skill.
 
+[1.1.1]: https://github.com/SameOldNick/laravel-notification-preferences/releases/tag/v1.1.1
 [1.1.0]: https://github.com/SameOldNick/laravel-notification-preferences/releases/tag/v1.1.0
 [1.0.0]: https://github.com/SameOldNick/laravel-notification-preferences/releases/tag/v1.0.0
