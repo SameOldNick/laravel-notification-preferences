@@ -18,7 +18,7 @@ Configuration lives in `config/notification-preferences.php` and is read through
 - `required_channels` lists channels that are appended to every notification of a type, even when disabled. They do not need to appear in `channels` or `available_channels`, but they must be channels the application can deliver through. Defaults never apply to them.
 - `types` is keyed by the value returned from `notificationType()`. Each type requires `label` and `category`, both of which may be translation keys.
 - A type may override `available_channels`, `required_channels`, and `default_channels`. A missing or `null` value falls back to the global list or the channel defaults, while `[]` opts out entirely.
-- Configure a single `guard` class-string implementing `NotificationTypeGuard`. It receives each type in `allows(string $notificationType, object $notifiable)`, and notifiables it rejects never see or configure that type. Guarded-out types are also rejected by `updatePreferencesForNotifiable()`. Set `guard` to `NotificationTypeGuard::class` to resolve the container binding instead. Use a class-string rather than a closure so `config:cache` keeps working.
+- Configure a single `guard` class-string implementing `NotificationTypeGuard`. It receives each type in `allows(string $notificationType, object $notifiable)`, and notifiables it rejects never see, configure, or receive that type. Guarded-out types are also rejected by `updatePreferencesForNotifiable()` and resolve no delivery channels, required ones included. Set `guard` to `NotificationTypeGuard::class` to resolve the container binding instead. Use a class-string rather than a closure so `config:cache` keeps working.
 
 @verbatim
 <code-snippet name="Notification type configuration" lang="php">

@@ -10,8 +10,9 @@ interface NotificationTypeGuard
      * One guard is configured for the whole catalog, so it receives the type
      * instead of each type declaring its own guard.
      *
-     * Guards control which types a notifiable can see and configure. They do not
-     * prevent the application from sending a notification of that type.
+     * Guards control which types a notifiable can see, configure, and receive.
+     * A type the guard rejects resolves no delivery channels, including required
+     * ones, so it is not sent.
      */
     public function allows(string $notificationType, object $notifiable): bool;
 }

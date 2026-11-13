@@ -141,8 +141,8 @@ class NotificationGuard implements NotificationTypeGuard
 - A missing or `null` guard leaves every type unguarded. A guard that is not a class-string implementing the contract throws `InvalidArgumentException`.
 - Use a class-string rather than a closure so `config:cache` still works.
 - Guarded-out types are omitted from `getPreferencesForNotifiable()` and `getNotificationTypesForNotifiable()`, and rejected by `updatePreferencesForNotifiable()`.
-- The guard runs per type and notifiable on every call; keep it cheap.
-- Guards do not run during delivery. Sending a guarded-out type still resolves channels, so gate recipients in the application.
+- The guard runs per type and notifiable whenever preferences are listed and whenever channels are resolved, so keep it cheap.
+- Guarded-out types are not delivered either: `via()` resolves no channels, required ones included. Because delivery can run in a queue worker, the guard must not depend on request-only state; use the notifiable, for example with `Gate::forUser($notifiable)`.
 
 ## Notification wiring
 
@@ -289,6 +289,16 @@ $this->app->singleton(NotificationCatalog::class, DatabaseNotificationCatalog::c
 - `getPreferencesForNotifiable()` only uses the type list and `availableNotificationChannelsFor()`. Required channels affect delivery, not the returned preference list.
 
 ## Upgrading an application
+
+### From 1.1.0 to 1.1.1
+
+This release applies the notification type guard when channels are resolved and adds a hook for `null` notifiables. No database or configuration changes are required. Work through these checks before changing code:
+
+1. Audit every guard for delivery. `via()` now resolves no channels for a type the guard rejects, and required channels no longer override the guard. A guard written only for the preferences UI now also runs when a notification is sent, including from queue workers, so it must not rely on request-only state such as the session or the authenticated guard. Use the notifiable it receives, for example with `Gate::forUser($notifiable)`.
+2. Resolve `NotificationChannelResolver` from the container. Its constructor now also requires a `NotificationTypeGuardResolver`, so code that instantiates it directly must pass the guard resolver as well.
+3. Override `getNullNotifiableVia()` only if notifications sent without a notifiable should use a fixed channel list; it returns no channels by default.
+
+### From 1.0.x to 1.1.0
 
 Upgrading from 1.0.x to 1.1.0 needs no database changes. Work through these checks before changing code:
 

@@ -170,8 +170,8 @@ class NotificationGuard implements NotificationTypeGuard
 - A missing or `null` guard leaves every type unguarded. Any other value that is not a class-string implementing the contract throws an `InvalidArgumentException`.
 - Use a class-string rather than a closure, so `config:cache` can still serialize the configuration.
 - Guarded-out types are omitted from `getPreferencesForNotifiable()` and `getNotificationTypesForNotifiable()`, and rejected by `updatePreferencesForNotifiable()`.
-- The guard runs once per type and notifiable on every call, so keep it cheap.
-- Guards control what a notifiable can see and configure. They do not prevent the application from sending that notification, so choose recipients with your own authorization.
+- Guarded-out types are not delivered either. `via()` resolves no channels for them, and required channels are not appended to override the guard.
+- The guard runs for each type and notifiable, both when listing preferences and when resolving channels during delivery, so keep it cheap. Because delivery can happen in a queue worker, the guard must not depend on request-only state such as the session; use the notifiable it receives, for example with `Gate::forUser($notifiable)`.
 
 To use a Gate or policy, call it from the guard:
 
@@ -208,14 +208,15 @@ A notification type may override the global channel lists:
 
 When a notification that uses `RoutesViaNotifiablePreferences` is sent, its channels are resolved in this order:
 
-1. Start with the available channels for the notification type: its own `available_channels` override, otherwise the global list, otherwise every key in `channels`.
-2. Remove channels the notifiable has disabled, and channels that are disabled by default and have no stored preference.
-3. Append the required channels for the notification type.
-4. Remove duplicates.
+1. If the configured guard rejects the notification type for the notifiable, resolve no channels at all. Required channels do not override this.
+2. Start with the available channels for the notification type: its own `available_channels` override, otherwise the global list, otherwise every key in `channels`.
+3. Remove channels the notifiable has disabled, and channels that are disabled by default and have no stored preference.
+4. Append the required channels for the notification type.
+5. Remove duplicates.
 
 A channel with no stored preference follows its default state: enabled unless `enabled_by_default` (or the type's `default_channels`) turns it off. Newly added channels therefore still reach existing users unless they are opt-in. Saving a preference writes an explicit row for the submitted channels, which then stops following later default changes. Required channels are appended either way.
 
-Guards do not run during delivery: a guarded-out type still resolves channels if the application sends it. Guard recipients in the application instead.
+The guard runs during delivery as well as when listing preferences. A guarded-out type resolves no channels, so the notification is dispatched but nothing is delivered; choose recipients deliberately rather than relying on the guard as an error-handling mechanism.
 
 ## Usage
 
@@ -393,7 +394,7 @@ public function availableNotificationChannelsFor(string $notificationType, objec
 }
 ```
 
-Required channels are appended even when they are not available, so guard them too if they must never be delivered.
+Required channels are appended even when they are not available, but a type the configured guard rejects resolves no channels at all, required ones included. Reject the type in the guard if it must never be delivered.
 
 ## Upgrading
 

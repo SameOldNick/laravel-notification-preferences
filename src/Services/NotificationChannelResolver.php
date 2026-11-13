@@ -19,7 +19,8 @@ class NotificationChannelResolver
      *
      * A channel is dropped when the notifiable recorded a disabled preference for it, or when it has no
      * preference row and the catalog disables it by default. A channel with no preference row is otherwise
-     * kept, so a newly added channel still reaches existing users.
+     * kept, so a newly added channel still reaches existing users. A type the configured guard rejects
+     * resolves no channels at all.
      *
      * @param  ?object  $notifiable  The notifiable entity to check preferences for
      * @param  string  $type  The notification type to check preferences for
