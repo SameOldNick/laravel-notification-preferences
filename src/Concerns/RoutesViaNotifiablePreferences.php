@@ -34,7 +34,7 @@ trait RoutesViaNotifiablePreferences
     public function via($notifiable = null): array
     {
         if ($notifiable === null) {
-            return [];
+            return $this->getNullNotifiableVia();
         }
 
         return app(NotificationChannelResolver::class)->viaNotifiablePreferencesWithRequiredChannels(
@@ -43,6 +43,16 @@ trait RoutesViaNotifiablePreferences
             $this->getAvailableChannels($notifiable),
             $this->getRequiredChannels($notifiable),
         );
+    }
+
+    /**
+     * Get the channels to use when the notifiable is null. This is used for notifications sent to anonymous notifiables.
+     *
+     * @return array<int, string>
+     */
+    protected function getNullNotifiableVia(): array
+    {
+        return [];
     }
 
     /**
